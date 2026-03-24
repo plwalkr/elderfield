@@ -1072,6 +1072,11 @@ function enterScreen(id) {
     commitProgress("Checkpoint saved: Fenwatch Approach reached");
     showMessage("Fenwatch Approach", "The marsh tightens into old military stone here. Fenwatch's buried gate is in front of you now, with the catacomb door still chained fast.");
   }
+  if (id === "FC-01" && !state.quest.fenwatchHallEchoSeen) {
+    state.quest.fenwatchHallEchoSeen = true;
+    commitProgress("Dungeon state saved: Fenwatch Hall of Names entered");
+    showMessage("Hall of Names", "Memorial rows stretch beneath the catacomb ceiling, half-finished and water-stained. Fenwatch was meant to honor the dead. Instead it became the place their truth was stored out of sight.");
+  }
 }
 
 function loadScreen(id, spawn = "default", options = {}) {
@@ -2739,9 +2744,13 @@ const screens = {
       return solids;
     },
     transitions() {
-      return [
+      const transitions = [
         { rect: rect(140, -2, 40, 10), to: "GF-07", spawn: "south" }
       ];
+      if (state.shortcuts.fenwatchDoorOpen) {
+        transitions.push({ rect: rect(140, HEIGHT - 2, 40, 10), to: "FC-01", spawn: "north" });
+      }
+      return transitions;
     },
     interactables() {
       return [
@@ -2777,6 +2786,427 @@ const screens = {
         makeEnemy("hound", 150, 92, { axis: "x", min: 138, max: 170, speed: 20, hp: 2 }),
         makeEnemy("wraith", 154, 62, { axis: "y", min: 46, max: 86, speed: 16, hp: 1 }),
         makeEnemy("moth", 110, 98, { axis: "x", min: 102, max: 126, speed: 18, hp: 1 })
+      ];
+    }
+  },
+  "FC-01": {
+    name: "Hall of Names",
+    region: "Fenwatch Catacombs",
+    spawns: {
+      default: { x: 150, y: 24 },
+      north: { x: 150, y: 24 },
+      east: { x: 260, y: 86 },
+      west: { x: 54, y: 90 }
+    },
+    draw() {
+      backgroundFC01();
+      drawPortcullis(34, 72, 16, 54, state.shortcuts.fenwatchReliquaryOpen);
+      drawPixelText("Hall of Names", 160, 30, "#f6e4a5", "center", 8);
+    },
+    solids() {
+      const solids = [
+        rect(48, 58, 42, 82),
+        rect(230, 58, 42, 82),
+        rect(198, 116, 98, 44),
+        rect(0, 0, WIDTH, 8),
+        rect(0, 0, 8, HEIGHT),
+        rect(WIDTH - 8, 0, 8, HEIGHT)
+      ];
+      if (!state.shortcuts.fenwatchReliquaryOpen) {
+        solids.push(rect(34, 72, 16, 54));
+      }
+      return solids;
+    },
+    transitions() {
+      const transitions = [
+        { rect: rect(140, -2, 40, 10), to: "GF-10", spawn: "default" },
+        { rect: rect(WIDTH - 10, 74, 12, 34), to: "FC-02", spawn: "west" }
+      ];
+      if (state.shortcuts.fenwatchReliquaryOpen) {
+        transitions.push({ rect: rect(-2, 74, 10, 34), to: "FC-05", spawn: "east" });
+      }
+      return transitions;
+    },
+    interactables() {
+      return [
+        {
+          rect: rect(126, 58, 68, 30),
+          label: "Read memorial rows",
+          onInteract: () => showMessage("Hall of Names", "Rows of unfinished names fill the memorial floor. Whole family lines end in scoring marks where the stone was never properly completed.")
+        },
+        {
+          rect: rect(212, 116, 70, 30),
+          label: "Inspect flooded trench",
+          onInteract: () => showMessage("Flooded Trench", hasMarshHook() ? "The opposite anchor ring is within Marsh Hook reach now, but the true bridge chain is deeper in the gallery." : "A ring glints beyond the flooded trench. Whatever crossed this gap once used a chain relic with far more reach than your hands.")
+        }
+      ];
+    },
+    hookTargets() {
+      return [];
+    },
+    npcs() {
+      return [];
+    },
+    spawnEnemies() {
+      return [
+        makeEnemy("wraith", 154, 106, { axis: "x", min: 132, max: 182, speed: 16, hp: 1 })
+      ];
+    }
+  },
+  "FC-02": {
+    name: "Sluice Watch",
+    region: "Fenwatch Catacombs",
+    spawns: {
+      default: { x: 24, y: 90 },
+      west: { x: 24, y: 90 },
+      north: { x: 154, y: 24 }
+    },
+    draw() {
+      backgroundFC02();
+      drawPixelText("Sluice Watch", 66, 28, "#f6e4a5", "left", 8);
+      if (state.quest.fenwatchSluiceOpened) {
+        drawPixelText("Drain channel opened", 20, 160, "#d9d1bf", "left", 7);
+      }
+    },
+    solids() {
+      return [
+        rect(206, 0, 114, HEIGHT),
+        rect(108, 40, 50, 30),
+        rect(172, 78, 28, 64),
+        rect(0, 0, WIDTH, 8),
+        rect(0, HEIGHT - 8, WIDTH, 8),
+        rect(0, 0, 8, HEIGHT)
+      ];
+    },
+    transitions() {
+      return [
+        { rect: rect(-2, 74, 10, 34), to: "FC-01", spawn: "east" },
+        { rect: rect(140, HEIGHT - 2, 40, 10), to: "FC-03", spawn: "north" }
+      ];
+    },
+    interactables() {
+      return [
+        {
+          rect: rect(156, 38, 22, 30),
+          label: state.quest.fenwatchSluiceOpened ? "Sluice lever set" : "Set burial sluice",
+          onInteract: () => {
+            if (state.quest.fenwatchSluiceOpened) {
+              showMessage("Burial Sluice", "The sluice gate is already open. Water continues draining into the lower crypt channel.");
+              return;
+            }
+            state.quest.fenwatchSluiceOpened = true;
+            commitProgress("Dungeon state saved: Fenwatch sluice opened");
+            showMessage("Burial Sluice", "Old teeth grind as the sluice gate shifts. Somewhere deeper in the crypt, floodwater drops enough to uncover a passable ledge.");
+          }
+        }
+      ];
+    },
+    hookTargets() {
+      return [];
+    },
+    npcs() {
+      return [];
+    },
+    spawnEnemies() {
+      return [
+        makeEnemy("moth", 130, 96, { axis: "y", min: 80, max: 122, speed: 18, hp: 1 })
+      ];
+    }
+  },
+  "FC-03": {
+    name: "Drowned Ledger Crypt",
+    region: "Fenwatch Catacombs",
+    spawns: {
+      default: { x: 150, y: 24 },
+      north: { x: 150, y: 24 },
+      east: { x: 262, y: 84 }
+    },
+    draw() {
+      backgroundFC03();
+      if (!state.quest.fenwatchSluiceOpened) {
+        drawFogBand(118, 78, 124, 70);
+      }
+    },
+    solids() {
+      const solids = [
+        rect(36, 22, 60, 32),
+        rect(240, 36, 40, 90),
+        rect(118, 82, 124, 64),
+        rect(0, 0, WIDTH, 8),
+        rect(0, HEIGHT - 8, WIDTH, 8),
+        rect(WIDTH - 8, 0, 8, HEIGHT)
+      ];
+      if (state.quest.fenwatchSluiceOpened) {
+        solids.pop();
+        solids.push(rect(118, 140, 124, 18));
+      }
+      return solids;
+    },
+    transitions() {
+      const transitions = [
+        { rect: rect(140, -2, 40, 10), to: "FC-02", spawn: "north" }
+      ];
+      if (state.quest.fenwatchSluiceOpened) {
+        transitions.push({ rect: rect(-2, 74, 10, 34), to: "FC-04", spawn: "east" });
+      }
+      return transitions;
+    },
+    interactables() {
+      return [
+        {
+          rect: rect(42, 24, 46, 24),
+          label: "Read drowned ledger",
+          onInteract: () => {
+            if (!state.rewards.fenwatchLedgerRead) {
+              state.rewards.fenwatchLedgerRead = true;
+              commitProgress("Lore saved: Fenwatch drowned ledger read");
+            }
+            showMessage("Drowned Ledger", "A burial tally stops halfway through a retreat column. The final note simply reads: 'Vault sealed before full naming. Ordered above my station.'");
+          }
+        }
+      ];
+    },
+    hookTargets() {
+      return [];
+    },
+    npcs() {
+      return [];
+    },
+    spawnEnemies() {
+      return [
+        makeEnemy("wraith", 168, 112, { axis: "x", min: 132, max: 202, speed: 16, hp: 1 }),
+        makeEnemy("moth", 206, 64, { axis: "y", min: 48, max: 92, speed: 18, hp: 1 })
+      ];
+    }
+  },
+  "FC-04": {
+    name: "Chain Gallery",
+    region: "Fenwatch Catacombs",
+    spawns: {
+      default: { x: 264, y: 90 },
+      east: { x: 264, y: 90 },
+      north: { x: 56, y: 24 },
+      west: { x: 24, y: 90 }
+    },
+    draw() {
+      backgroundFC04();
+      drawPixelText("Chain Gallery", 160, 28, "#f6e4a5", "center", 8);
+    },
+    solids() {
+      const solids = [
+        rect(20, 18, 68, 48),
+        rect(126, 58, 100, 60),
+        rect(0, 0, WIDTH, 8),
+        rect(0, HEIGHT - 8, WIDTH, 8)
+      ];
+      if (!state.shortcuts.fenwatchBridgeOpen) {
+        solids.push(rect(220, 58, 76, 60));
+      } else {
+        solids.push(rect(220, 58, 18, 60));
+      }
+      return solids;
+    },
+    transitions() {
+      const transitions = [
+        { rect: rect(WIDTH - 10, 74, 12, 34), to: "FC-03", spawn: "east" },
+        { rect: rect(46, -2, 24, 10), to: "FC-05", spawn: "south" },
+        { rect: rect(0, 0, 10, 34), to: "FC-01", spawn: "west" }
+      ];
+      if (state.shortcuts.fenwatchBridgeOpen) {
+        transitions.push({ rect: rect(310, 74, 10, 34), to: "FC-06", spawn: "west" });
+      }
+      return transitions;
+    },
+    interactables() {
+      return [
+        {
+          rect: rect(58, 24, 20, 34),
+          label: state.shortcuts.fenwatchReliquaryOpen ? "Bell chain pulled" : "Pull bell chain",
+          onInteract: () => {
+            if (state.shortcuts.fenwatchReliquaryOpen) {
+              showMessage("Funeral Bell", "The bell chain is already pulled. The reliquary gate above stands open.");
+              return;
+            }
+            state.quest.fenwatchReliquaryGateOpen = true;
+            commitProgress("Dungeon state saved: Warden Reliquary gate opened");
+            showMessage("Funeral Bell", "The chain drags the drowned bell once through the chamber. Somewhere above, a reliquary gate unbars with a heavy iron snap.");
+          }
+        },
+        {
+          rect: rect(150, 72, 44, 20),
+          label: state.shortcuts.fenwatchBridgeOpen ? "Bridge chain set" : "Inspect bridge chain",
+          onInteract: () => showMessage("Bridge Chain", state.shortcuts.fenwatchBridgeOpen ? "The bridge chain now lies locked in its pulled position, spanning deeper into the vault." : "A chain eye hangs over the flooded cut. It is clearly meant to be yanked from a distance, not by hand.")
+        }
+      ];
+    },
+    hookTargets() {
+      return [
+        {
+          rect: rect(164, 74, 18, 18),
+          label: state.shortcuts.fenwatchBridgeOpen ? "Bridge already pulled" : "Pull bridge chain",
+          onHook: () => {
+            if (!hasMarshHook()) {
+              marshHookLockedMessage();
+              return;
+            }
+            if (state.shortcuts.fenwatchBridgeOpen) {
+              showMessage("Bridge Chain", "The gallery bridge is already extended across the flooded cut.");
+              return;
+            }
+            state.quest.fenwatchBridgePulled = true;
+            commitProgress("Dungeon state saved: Chain Gallery bridge pulled");
+            showMessage("Bridge Pulled", "The Marsh Hook bites the chain eye and drags the buried bridge into place. The same gallery that taunted you on the first pass now opens deeper into Fenwatch.");
+          }
+        }
+      ];
+    },
+    npcs() {
+      return [];
+    },
+    spawnEnemies() {
+      return [
+        makeEnemy("wraith", 108, 92, { axis: "x", min: 88, max: 118, speed: 16, hp: 1 })
+      ];
+    }
+  },
+  "FC-05": {
+    name: "Warden Reliquary",
+    region: "Fenwatch Catacombs",
+    spawns: {
+      default: { x: 264, y: 92 },
+      east: { x: 264, y: 92 },
+      south: { x: 154, y: 24 }
+    },
+    draw() {
+      backgroundFC05();
+      drawPixelText("Warden Reliquary", 160, 30, "#f6e4a5", "center", 8);
+      drawChest(154, 80, state.items.marshHook);
+    },
+    solids() {
+      return [
+        rect(118, 50, 84, 62),
+        rect(0, 0, WIDTH, 8),
+        rect(0, HEIGHT - 8, WIDTH, 8),
+        rect(0, 0, 8, HEIGHT),
+        rect(WIDTH - 8, 0, 8, HEIGHT)
+      ];
+    },
+    transitions() {
+      return [
+        { rect: rect(WIDTH - 10, 74, 12, 34), to: "FC-01", spawn: "west" },
+        { rect: rect(140, HEIGHT - 2, 40, 10), to: "FC-04", spawn: "north" }
+      ];
+    },
+    interactables() {
+      return [
+        {
+          rect: rect(150, 74, 24, 20),
+          label: state.items.marshHook ? "Reliquary opened" : "Claim Marsh Hook",
+          onInteract: () => {
+            if (state.items.marshHook) {
+              showMessage("Warden Reliquary", "The reliquary dais stands empty now, save for the grooves where the Marsh Hook's chain once rested.");
+              return;
+            }
+            state.items.marshHook = true;
+            commitProgress("Item saved: Marsh Hook acquired");
+            showMessage("Marsh Hook", "A heavy chain relic rises from the reliquary chest. The Marsh Hook can cross gaps, pull bridge chains, seize distant mechanisms, and rewrite the roads you have already seen.");
+          }
+        }
+      ];
+    },
+    hookTargets() {
+      return [];
+    },
+    npcs() {
+      return [];
+    },
+    spawnEnemies() {
+      return [];
+    }
+  },
+  "FC-06": {
+    name: "Testimony Vault",
+    region: "Fenwatch Catacombs",
+    spawns: {
+      default: { x: 24, y: 92 },
+      west: { x: 24, y: 92 }
+    },
+    draw() {
+      backgroundFC06();
+      drawPixelText("Testimony Vault", 160, 28, "#f6e4a5", "center", 8);
+      if (state.quest.fenwatchTestimonySeen) {
+        ctx.fillStyle = "rgba(255, 227, 160, 0.16)";
+        ctx.fillRect(166, 38, 106, 92);
+      }
+    },
+    solids() {
+      return [
+        rect(36, 36, 96, 94),
+        rect(172, 42, 102, 84),
+        rect(0, 0, WIDTH, 8),
+        rect(0, HEIGHT - 8, WIDTH, 8),
+        rect(WIDTH - 8, 0, 8, HEIGHT)
+      ];
+    },
+    transitions() {
+      return [
+        { rect: rect(-2, 74, 10, 34), to: "FC-04", spawn: "west" }
+      ];
+    },
+    interactables() {
+      return [
+        {
+          rect: rect(190, 60, 52, 34),
+          label: state.quest.fenwatchTestimonySeen ? "Read Warden testimony" : "Inspect testimony dais",
+          onInteract: () => {
+            if (!state.quest.fenwatchTestimonySeen) {
+              showMessage("Testimony Dais", "A silent bell hangs over the vault water. The testimony is inscribed beyond reach; the chain must be struck from afar.");
+              return;
+            }
+            showMessage("Warden Testimony", "We held the retreat road by oath. The order to seal Fenwatch came from the crown's own witness-priests. Let the dead be named before the living write us false.");
+          }
+        },
+        {
+          rect: rect(142, 134, 38, 18),
+          label: "Inspect sealed lower door",
+          onInteract: () => {
+            if (!state.quest.fenwatchSealDoorSeen) {
+              state.quest.fenwatchSealDoorSeen = true;
+              commitProgress("Dungeon state saved: Fenwatch lower seal discovered");
+            }
+            showMessage("Marshal Seal", state.quest.fenwatchTestimonySeen ? "Beyond this seal lies the deeper marshal chamber. That fight belongs to the next dungeon pass." : "A lower seal door waits beneath the testimony vault, but the chamber still holds its history shut.");
+          }
+        }
+      ];
+    },
+    hookTargets() {
+      return [
+        {
+          rect: rect(108, 56, 20, 20),
+          label: state.quest.fenwatchTestimonySeen ? "Bell already struck" : "Hook the oath bell",
+          onHook: () => {
+            if (!hasMarshHook()) {
+              marshHookLockedMessage();
+              return;
+            }
+            if (state.quest.fenwatchTestimonySeen) {
+              showMessage("Oath Bell", "The oath bell has already been struck. Fenwatch's testimony still hangs in the air.");
+              return;
+            }
+            state.quest.fenwatchTestimonySeen = true;
+            commitProgress("Story saved: Fenwatch testimony revealed");
+            showMessage("Echo of Abandonment", "The Marsh Hook snaps the oath bell. Spectral Wardens hold the retreat line while a royal official orders the vault sealed before the dead are named. The dead did not betray the kingdom. They were left to carry its shame.");
+          }
+        }
+      ];
+    },
+    npcs() {
+      return [];
+    },
+    spawnEnemies() {
+      return [
+        makeEnemy("wraith", 214, 100, { axis: "x", min: 192, max: 242, speed: 16, hp: 1 }),
+        makeEnemy("moth", 156, 80, { axis: "y", min: 58, max: 104, speed: 18, hp: 1 })
       ];
     }
   }
