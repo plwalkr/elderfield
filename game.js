@@ -147,14 +147,19 @@ function createDefaultSaveData() {
       graveRowsBurned: false,
       causewayBraziersLit: [false, false],
       causewayCleared: false,
+      bellwaterBreachOpened: false,
+      bellwaterFenwatchBridgeOpened: false,
+      bellwaterMemorialFerryOpened: false,
       fenwatchWinchFreed: false,
       reachedFenwatch: false,
+      reachedBellwaterLock: false,
       fenwatchHallEchoSeen: false,
       fenwatchSluiceOpened: false,
       fenwatchReliquaryGateOpen: false,
       fenwatchBridgePulled: false,
       fenwatchTestimonySeen: false,
-      fenwatchSealDoorSeen: false
+      fenwatchSealDoorSeen: false,
+      namelessStoneResolved: false
     },
     shortcuts: {
       highroadNorthOpen: false,
@@ -166,7 +171,10 @@ function createDefaultSaveData() {
       causewaySouthOpen: false,
       fenwatchDoorOpen: false,
       fenwatchReliquaryOpen: false,
-      fenwatchBridgeOpen: false
+      fenwatchBridgeOpen: false,
+      bellwaterBreachOpen: false,
+      bellwaterFenwatchBridgeOpen: false,
+      bellwaterMemorialFerryOpen: false
     },
     rewards: {
       shrineCacheCollected: false,
@@ -176,6 +184,8 @@ function createDefaultSaveData() {
       sunkenLoreTabletRead: false,
       namelessStoneClueRead: false,
       memorialHeartCollected: false,
+      bellwaterTabletRead: false,
+      memorialIsleHeartCollected: false,
       fenwatchLedgerRead: false,
       fenwatchTestimonyTabletRead: false
     },
@@ -317,6 +327,9 @@ function syncDerivedProgress() {
   state.shortcuts.greyfenBranchOpen = state.quest.greyfenBranchBurned;
   state.shortcuts.greyfenLiftOpen = state.quest.greyfenLiftFreed;
   state.shortcuts.causewaySouthOpen = state.quest.causewayCleared;
+  state.shortcuts.bellwaterBreachOpen = state.quest.bellwaterBreachOpened;
+  state.shortcuts.bellwaterFenwatchBridgeOpen = state.quest.bellwaterFenwatchBridgeOpened;
+  state.shortcuts.bellwaterMemorialFerryOpen = state.quest.bellwaterMemorialFerryOpened;
   state.shortcuts.fenwatchDoorOpen = state.quest.fenwatchWinchFreed;
   state.shortcuts.fenwatchReliquaryOpen = state.quest.fenwatchReliquaryGateOpen;
   state.shortcuts.fenwatchBridgeOpen = state.quest.fenwatchBridgePulled;
@@ -340,11 +353,15 @@ function syncDerivedProgress() {
   if (state.quest.reachedShepherdsRest && state.npcPhases.yselle === "unmet") {
     state.npcPhases.yselle = "waiting";
   }
-  if (state.quest.greyfenBranchBurned) {
+  if (state.quest.namelessStoneResolved) {
+    state.npcPhases.yselle = "memorial_truth";
+  } else if (state.quest.greyfenBranchBurned) {
     state.npcPhases.yselle = "greyfen_open";
   }
 
-  if (state.quest.falseMarkerRevealed) {
+  if (state.quest.namelessStoneResolved) {
+    state.npcPhases.toma = "memorial_resolved";
+  } else if (state.quest.falseMarkerRevealed) {
     state.npcPhases.toma = "truth_heard";
   } else if (state.quest.ferrymanMet) {
     state.npcPhases.toma = "met";
@@ -352,7 +369,9 @@ function syncDerivedProgress() {
     state.npcPhases.toma = "unmet";
   }
 
-  if (state.quest.falseMarkerRevealed) {
+  if (state.quest.namelessStoneResolved) {
+    state.npcPhases.nara = "stone_resolved";
+  } else if (state.quest.falseMarkerRevealed) {
     state.npcPhases.nara = "truth_shown";
   } else if (state.sideQuests.namelessStone !== "unstarted") {
     state.npcPhases.nara = "met";
@@ -401,6 +420,9 @@ function syncDerivedProgress() {
   }
   if (state.rewards.namelessStoneClueRead && state.sideQuests.namelessStone === "active") {
     state.sideQuests.namelessStone = "updated";
+  }
+  if (state.quest.namelessStoneResolved) {
+    state.sideQuests.namelessStone = "completed";
   }
 }
 
@@ -594,10 +616,16 @@ function objectiveText() {
   if (!state.quest.fenwatchTestimonySeen) {
     return "Cross into the Testimony Vault and uncover what Fenwatch buried with its dead.";
   }
+  if (state.items.marshHook && !state.shortcuts.bellwaterBreachOpen) {
+    return "Optional: return to Memorial Flats and use the Marsh Hook on the east breach chain to open Bellwater Lock.";
+  }
+  if (state.shortcuts.bellwaterBreachOpen && !state.quest.namelessStoneResolved) {
+    return "Optional: ride the Bellwater ferry to Memorial Isle and resolve the hidden Warden memorial.";
+  }
   if (!state.quest.sunkenForecourtCleared) {
     return "The main clue is uncovered. Optional: take the west branch from Marshfoot Landing and clear the Sunken Chapel forecourt.";
   }
-  return "Fenwatch's first dungeon slice is complete. Revisit Greyfen with the Marsh Hook, or carry the catacomb story deeper in the next pass.";
+  return "Fenwatch's first dungeon slice is complete. Bellwater and Memorial Isle now sit open on the Marsh Hook return route.";
 }
 
 function updateHud() {
@@ -1072,6 +1100,11 @@ function enterScreen(id) {
     commitProgress("Checkpoint saved: Fenwatch Approach reached");
     showMessage("Fenwatch Approach", "The marsh tightens into old military stone here. Fenwatch's buried gate is in front of you now, with the catacomb door still chained fast.");
   }
+  if (id === "GF-08" && !state.quest.reachedBellwaterLock) {
+    state.quest.reachedBellwaterLock = true;
+    commitProgress("Checkpoint saved: Bellwater Lock reached");
+    showMessage("Bellwater Lock", "The old flood controls still stand here, rusted into the marsh. From this lock you can fold Greyfen back toward Fenwatch or cross east to the hidden memorial waters.");
+  }
   if (id === "FC-01" && !state.quest.fenwatchHallEchoSeen) {
     state.quest.fenwatchHallEchoSeen = true;
     commitProgress("Dungeon state saved: Fenwatch Hall of Names entered");
@@ -1306,6 +1339,30 @@ function backgroundGF10() {
   drawFogBand(0, 0, WIDTH, 28);
 }
 
+function backgroundGF08() {
+  marshBackdrop();
+  drawWaterRect(0, 94, 112, 98);
+  drawWaterRect(208, 0, 112, HEIGHT);
+  drawStoneRect(100, 34, 74, 48);
+  drawStoneRect(118, 116, 56, 24);
+  drawStoneRect(188, 128, 20, 36);
+  drawChainSegment(194, 96, 30, true);
+  drawHookRing(196, 90, true);
+  drawChainSegment(218, 96, 28, true);
+  drawHookRing(220, 90, true);
+  drawReeds(18, 118, 50, 42);
+}
+
+function backgroundGF09() {
+  marshBackdrop();
+  drawWaterRect(0, 0, 72, HEIGHT);
+  drawWaterRect(248, 0, 72, HEIGHT);
+  drawStoneRect(112, 42, 96, 84);
+  drawStoneRect(136, 54, 48, 28);
+  drawReeds(26, 18, 28, 62);
+  drawReeds(268, 106, 24, 56);
+}
+
 function backgroundFC01() {
   cryptBackdrop();
   drawStoneRect(128, 18, 64, 18);
@@ -1357,7 +1414,7 @@ function backgroundFC06() {
   drawStoneRect(176, 46, 94, 78);
   drawBell(86, 62);
   drawChainSegment(86, 22, 28, true);
-  drawPortcullis(128, 136, 64, 18, state.quest.fenwatchSealDoorSeen);
+  drawPortcullis(128, 136, 64, 18, false);
   drawHookRing(118, 62, true);
 }
 
@@ -2004,6 +2061,10 @@ const screens = {
               showMessage("Yselle", "So Rowan Hollow has reopened the road at last. Good. The marsh below still takes names, and the ferrymen keep better history than the crown. Burn open the southeast barricade when you are ready.");
               return;
             }
+            if (state.npcPhases.yselle === "memorial_truth") {
+              showMessage("Yselle", "You found the hidden Warden memorial, didn't you? Good. Shepherd's Rest survives on the roads the kingdom forgot to erase. Keep listening to places like that.");
+              return;
+            }
             if (state.npcPhases.yselle === "greyfen_open") {
               showMessage("Yselle", "You cut the Greyfen descent open cleanly enough. Toma keeps the first dock below. If the false marker still stands, he will want to hear what you find.");
               return;
@@ -2214,6 +2275,14 @@ const screens = {
           rect: rect(146, 84, 18, 20),
           label: "Talk to Toma",
           onInteract: () => {
+            if (state.npcPhases.toma === "memorial_resolved") {
+              if (!state.quest.ferrymanMet) {
+                state.quest.ferrymanMet = true;
+                commitProgress("Dialogue saved: Toma met at memorial stage");
+              }
+              showMessage("Toma", "So the hidden isle still stands. Then Greyfen was not completely beaten into forgetting. That's enough to keep a ferryman at his dock a little longer.");
+              return;
+            }
             if (!state.quest.ferrymanMet) {
               state.quest.ferrymanMet = true;
               commitProgress("Quest saved: Ferryman at Dusk started");
@@ -2506,7 +2575,7 @@ const screens = {
         {
           rect: rect(74, 92, 18, 20),
           label: "Talk to Nara",
-          onInteract: () => showMessage("Nara", state.quest.falseMarkerRevealed ? "I have tended this mound for years and never once believed the upper carving. Thank you for making the deeper names legible again." : "The stone says one thing, the ground another. I keep tending both, because someone has to.")
+          onInteract: () => showMessage("Nara", state.npcPhases.nara === "stone_resolved" ? "So one honest grave still endured out on the water. Then the dead were not wholly given over to the lie after all." : state.quest.falseMarkerRevealed ? "I have tended this mound for years and never once believed the upper carving. Thank you for making the deeper names legible again." : "The stone says one thing, the ground another. I keep tending both, because someone has to.")
         },
         {
           rect: rect(144, 156, 32, 12),
@@ -2540,6 +2609,7 @@ const screens = {
       backgroundGF06();
       drawBramble(106, 108, 108, 22, state.quest.graveRowsBurned);
       drawChest(72, 58, state.rewards.memorialHeartCollected);
+      drawHookRing(284, 88, true);
     },
     solids() {
       const solids = [
@@ -2562,6 +2632,9 @@ const screens = {
       ];
       if (state.quest.graveRowsBurned) {
         transitions.push({ rect: rect(140, HEIGHT - 2, 40, 10), to: "GF-07", spawn: "north" });
+      }
+      if (state.shortcuts.bellwaterBreachOpen) {
+        transitions.push({ rect: rect(WIDTH - 10, 74, 12, 34), to: "GF-08", spawn: "west" });
       }
       return transitions;
     },
@@ -2598,6 +2671,11 @@ const screens = {
           }
         },
         {
+          rect: rect(270, 74, 24, 26),
+          label: state.shortcuts.bellwaterBreachOpen ? "Bellwater breach opened" : "Inspect east breach chain",
+          onInteract: () => showMessage("East Breach", state.shortcuts.bellwaterBreachOpen ? "The breach chain has already been hooked free. Bellwater Lock now lies open to the east." : hasMarshHook() ? "That chain eye can be yanked from here with the Marsh Hook." : "A chain eye hangs above the breached wall. You can see Bellwater beyond it, but only a proper hook relic would reach that far.")
+        },
+        {
           rect: rect(238, 54, 20, 18),
           label: "Read broken headstone",
           onInteract: () => {
@@ -2606,6 +2684,27 @@ const screens = {
               commitProgress("Lore saved: Nameless Stone clue found");
             }
             showMessage("Broken Headstone", "A surviving line names a captain transferred 'off the record' before the burial list was rewritten. Nara would understand why that matters.");
+          }
+        }
+      ];
+    },
+    hookTargets() {
+      return [
+        {
+          rect: rect(278, 80, 16, 16),
+          label: state.shortcuts.bellwaterBreachOpen ? "Bellwater breach already open" : "Open Bellwater breach",
+          onHook: () => {
+            if (!hasMarshHook()) {
+              marshHookLockedMessage();
+              return;
+            }
+            if (state.shortcuts.bellwaterBreachOpen) {
+              showMessage("Bellwater Breach", "The east breach is already pulled wide enough to enter Bellwater Lock.");
+              return;
+            }
+            state.quest.bellwaterBreachOpened = true;
+            commitProgress("Shortcut saved: Bellwater breach opened");
+            showMessage("Bellwater Breach", "The Marsh Hook catches the breach chain and tears the wall brace free. Bellwater Lock is now reachable from Memorial Flats.");
           }
         }
       ];
@@ -2708,16 +2807,214 @@ const screens = {
       ];
     }
   },
+  "GF-08": {
+    name: "Bellwater Lock",
+    region: "Greyfen March",
+    spawns: {
+      default: { x: 24, y: 88 },
+      west: { x: 24, y: 88 },
+      south: { x: 150, y: 150 },
+      east: { x: 282, y: 88 }
+    },
+    draw() {
+      backgroundGF08();
+      if (state.shortcuts.bellwaterFenwatchBridgeOpen) {
+        drawStoneRect(138, 140, 52, 12);
+      }
+      if (state.shortcuts.bellwaterMemorialFerryOpen) {
+        ctx.fillStyle = "#8b6a49";
+        ctx.fillRect(250, 106, 28, 10);
+      }
+      if (state.rewards.bellwaterTabletRead) {
+        ctx.fillStyle = "rgba(255, 227, 160, 0.14)";
+        ctx.fillRect(96, 28, 82, 56);
+      }
+    },
+    solids() {
+      return [
+        rect(0, 92, 110, 100),
+        rect(206, 0, 114, 68),
+        rect(206, 124, 114, 68),
+        rect(96, 28, 22, 56),
+        rect(156, 28, 22, 56),
+        rect(116, 112, 64, 30),
+        rect(186, 122, 26, 42),
+        rect(0, 0, WIDTH, 8),
+        rect(0, HEIGHT - 8, WIDTH, 8),
+        rect(0, 0, 8, HEIGHT)
+      ];
+    },
+    transitions() {
+      const transitions = [
+        { rect: rect(-2, 74, 10, 34), to: "GF-06", spawn: "west" }
+      ];
+      if (state.shortcuts.bellwaterFenwatchBridgeOpen) {
+        transitions.push({ rect: rect(140, HEIGHT - 2, 40, 10), to: "GF-10", spawn: "west" });
+      }
+      if (state.shortcuts.bellwaterMemorialFerryOpen) {
+        transitions.push({ rect: rect(WIDTH - 10, 74, 12, 34), to: "GF-09", spawn: "west" });
+      }
+      return transitions;
+    },
+    interactables() {
+      return [
+        {
+          rect: rect(108, 36, 56, 40),
+          label: "Read lock tablet",
+          onInteract: () => {
+            if (!state.rewards.bellwaterTabletRead) {
+              state.rewards.bellwaterTabletRead = true;
+              commitProgress("Lore saved: Bellwater lock tablet read");
+            }
+            showMessage("Lock Tablet", "The flood controls were deepened after the retreat, not before it. Greyfen's marsh was made worse on purpose to bury the approach beyond the dead.");
+          }
+        },
+        {
+          rect: rect(186, 94, 18, 22),
+          label: state.shortcuts.bellwaterFenwatchBridgeOpen ? "Fenwatch bridge open" : "Inspect south bridge chain",
+          onInteract: () => showMessage("South Bridge Chain", state.shortcuts.bellwaterFenwatchBridgeOpen ? "The chain bridge now lies open to Fenwatch Approach, turning the long return into a clean shortcut." : hasMarshHook() ? "That bridge chain can be dragged into place from here with the Marsh Hook." : "A heavy bridge chain disappears into the lock floor. The anchor eye is too far to reach by hand.")
+        },
+        {
+          rect: rect(210, 94, 20, 22),
+          label: state.shortcuts.bellwaterMemorialFerryOpen ? "Memorial ferry ready" : "Inspect ferry chain",
+          onInteract: () => showMessage("Memorial Ferry", state.shortcuts.bellwaterMemorialFerryOpen ? "The little lock ferry is free now. Memorial Isle lies just beyond the reeds to the east." : hasMarshHook() ? "The ferry chain can be snagged from the dock if you set the Marsh Hook cleanly." : "A ferry line sits beyond hand reach. Someone once kept a small memorial crossing here.")
+        }
+      ];
+    },
+    hookTargets() {
+      return [
+        {
+          rect: rect(188, 84, 16, 16),
+          label: state.shortcuts.bellwaterFenwatchBridgeOpen ? "Bridge already set" : "Pull Fenwatch bridge chain",
+          onHook: () => {
+            if (!hasMarshHook()) {
+              marshHookLockedMessage();
+              return;
+            }
+            if (state.shortcuts.bellwaterFenwatchBridgeOpen) {
+              showMessage("Fenwatch Bridge", "The Bellwater bridge is already locked open toward Fenwatch.");
+              return;
+            }
+            state.quest.bellwaterFenwatchBridgeOpened = true;
+            commitProgress("Shortcut saved: Bellwater bridge to Fenwatch opened");
+            showMessage("Fenwatch Bridge", "The Marsh Hook bites the rusted chain and drags the Bellwater bridge across. Greyfen now folds back toward Fenwatch in one clean return line.");
+          }
+        },
+        {
+          rect: rect(212, 84, 16, 16),
+          label: state.shortcuts.bellwaterMemorialFerryOpen ? "Ferry already released" : "Pull memorial ferry chain",
+          onHook: () => {
+            if (!hasMarshHook()) {
+              marshHookLockedMessage();
+              return;
+            }
+            if (state.shortcuts.bellwaterMemorialFerryOpen) {
+              showMessage("Memorial Ferry", "The east ferry is already floating free for the crossing to Memorial Isle.");
+              return;
+            }
+            state.quest.bellwaterMemorialFerryOpened = true;
+            commitProgress("Shortcut saved: Bellwater memorial ferry released");
+            showMessage("Memorial Ferry", "The Marsh Hook yanks the ferry chain free. A small memorial skiff settles against the east dock, ready to cross to the hidden isle.");
+          }
+        }
+      ];
+    },
+    npcs() {
+      return [];
+    },
+    spawnEnemies() {
+      return [
+        makeEnemy("wraith", 146, 92, { axis: "x", min: 126, max: 170, speed: 16, hp: 1 }),
+        makeEnemy("leaper", 66, 132, { axis: "x", min: 34, max: 86, speed: 16, hp: 2 })
+      ];
+    }
+  },
+  "GF-09": {
+    name: "Memorial Isle",
+    region: "Greyfen March",
+    spawns: {
+      default: { x: 24, y: 88 },
+      west: { x: 24, y: 88 }
+    },
+    draw() {
+      backgroundGF09();
+      drawChest(176, 86, state.rewards.memorialIsleHeartCollected);
+      if (state.quest.namelessStoneResolved) {
+        ctx.fillStyle = "rgba(255, 227, 160, 0.14)";
+        ctx.fillRect(130, 54, 60, 30);
+      }
+    },
+    solids() {
+      return [
+        rect(0, 0, 76, 62),
+        rect(0, 114, 76, 78),
+        rect(244, 0, 76, 62),
+        rect(244, 114, 76, 78),
+        rect(0, 0, WIDTH, 8),
+        rect(0, HEIGHT - 8, WIDTH, 8),
+        rect(0, 0, 8, HEIGHT),
+        rect(WIDTH - 8, 0, 8, HEIGHT)
+      ];
+    },
+    transitions() {
+      return [
+        { rect: rect(-2, 74, 10, 34), to: "GF-08", spawn: "east" }
+      ];
+    },
+    interactables() {
+      return [
+        {
+          rect: rect(136, 54, 48, 24),
+          label: state.quest.namelessStoneResolved ? "Read hidden memorial" : "Inspect hidden memorial",
+          onInteract: () => {
+            if (!state.quest.namelessStoneResolved) {
+              state.quest.namelessStoneResolved = true;
+              commitProgress("Quest saved: Nameless Stone resolved");
+              showMessage("Hidden Memorial", "The last honest stone in Greyfen names a Warden captain and the families buried beside him. Someone hid this memorial away from the official dead so one truthful grave would survive.");
+              return;
+            }
+            showMessage("Hidden Memorial", "The hidden memorial still stands apart from the official graves, naming the dead as they were rather than as the kingdom needed them to be.");
+          }
+        },
+        {
+          rect: rect(172, 82, 18, 18),
+          label: "Claim heart relic",
+          onInteract: () => {
+            if (!state.rewards.memorialIsleHeartCollected) {
+              state.rewards.memorialIsleHeartCollected = true;
+              commitProgress("Reward saved: Memorial Isle heart relic collected");
+              showMessage("Heart Relic", "A heart relic shard rests at the memorial's base, wrapped in oilcloth and ribbon. Someone meant this hidden grave to strengthen whoever finally found it.");
+              return;
+            }
+            showMessage("Memorial Isle", "The relic shard is gone, but the island still feels like a place kept alive by intention rather than chance.");
+          }
+        }
+      ];
+    },
+    npcs() {
+      return [];
+    },
+    spawnEnemies() {
+      return [
+        makeEnemy("wraith", 154, 96, { axis: "x", min: 132, max: 178, speed: 16, hp: 1 }),
+        makeEnemy("wraith", 184, 106, { axis: "x", min: 166, max: 202, speed: 16, hp: 1 })
+      ];
+    }
+  },
   "GF-10": {
     name: "Fenwatch Approach",
     region: "Greyfen March",
     spawns: {
       default: { x: 150, y: 24 },
-      north: { x: 150, y: 24 }
+      north: { x: 150, y: 24 },
+      west: { x: 24, y: 88 }
     },
     draw() {
       backgroundGF10();
       drawBramble(194, 92, 14, 28, state.shortcuts.fenwatchDoorOpen);
+      if (state.shortcuts.bellwaterFenwatchBridgeOpen) {
+        drawStoneRect(14, 84, 78, 16);
+      }
       if (!state.shortcuts.fenwatchDoorOpen) {
         ctx.fillStyle = "#423c37";
         ctx.fillRect(134, 122, 52, 16);
@@ -2747,6 +3044,9 @@ const screens = {
       const transitions = [
         { rect: rect(140, -2, 40, 10), to: "GF-07", spawn: "south" }
       ];
+      if (state.shortcuts.bellwaterFenwatchBridgeOpen) {
+        transitions.push({ rect: rect(-2, 74, 10, 34), to: "GF-08", spawn: "south" });
+      }
       if (state.shortcuts.fenwatchDoorOpen) {
         transitions.push({ rect: rect(140, HEIGHT - 2, 40, 10), to: "FC-01", spawn: "north" });
       }
@@ -2774,7 +3074,12 @@ const screens = {
         {
           rect: rect(144, 120, 32, 18),
           label: "Inspect catacomb door",
-          onInteract: () => showMessage("Fenwatch Catacombs", state.shortcuts.fenwatchDoorOpen ? "The overworld route now reaches the dungeon door. The Fenwatch interior is the next build pass." : "The catacomb door is still sealed. Free the chain winch before the way below can open.")
+          onInteract: () => showMessage("Fenwatch Catacombs", state.shortcuts.fenwatchDoorOpen ? "The overworld route now reaches the Fenwatch interior. The catacombs below are already playable in this slice." : "The catacomb door is still sealed. Free the chain winch before the way below can open.")
+        },
+        {
+          rect: rect(18, 82, 22, 20),
+          label: state.shortcuts.bellwaterFenwatchBridgeOpen ? "Bellwater bridge open" : "Inspect west bridge scar",
+          onInteract: () => showMessage("Bellwater Return", state.shortcuts.bellwaterFenwatchBridgeOpen ? "Bellwater now links straight back into Fenwatch Approach. The Marsh Hook has started folding the march back onto itself." : hasMarshHook() ? "There is a return bridge chain here, but it must be pulled from the Bellwater side." : "A scar in the stone shows a return bridge once met Fenwatch here.")
         }
       ];
     },
@@ -2931,14 +3236,14 @@ const screens = {
       const solids = [
         rect(36, 22, 60, 32),
         rect(240, 36, 40, 90),
-        rect(118, 82, 124, 64),
         rect(0, 0, WIDTH, 8),
         rect(0, HEIGHT - 8, WIDTH, 8),
         rect(WIDTH - 8, 0, 8, HEIGHT)
       ];
       if (state.quest.fenwatchSluiceOpened) {
-        solids.pop();
         solids.push(rect(118, 140, 124, 18));
+      } else {
+        solids.push(rect(118, 82, 124, 64));
       }
       return solids;
     },
@@ -3010,7 +3315,7 @@ const screens = {
       const transitions = [
         { rect: rect(WIDTH - 10, 74, 12, 34), to: "FC-03", spawn: "east" },
         { rect: rect(46, -2, 24, 10), to: "FC-05", spawn: "south" },
-        { rect: rect(0, 0, 10, 34), to: "FC-01", spawn: "west" }
+        { rect: rect(-2, 74, 10, 34), to: "FC-01", spawn: "west" }
       ];
       if (state.shortcuts.fenwatchBridgeOpen) {
         transitions.push({ rect: rect(310, 74, 10, 34), to: "FC-06", spawn: "west" });
@@ -3084,7 +3389,6 @@ const screens = {
     },
     solids() {
       return [
-        rect(118, 50, 84, 62),
         rect(0, 0, WIDTH, 8),
         rect(0, HEIGHT - 8, WIDTH, 8),
         rect(0, 0, 8, HEIGHT),
@@ -3156,7 +3460,7 @@ const screens = {
     interactables() {
       return [
         {
-          rect: rect(190, 60, 52, 34),
+          rect: rect(136, 58, 42, 34),
           label: state.quest.fenwatchTestimonySeen ? "Read Warden testimony" : "Inspect testimony dais",
           onInteract: () => {
             if (!state.quest.fenwatchTestimonySeen) {
