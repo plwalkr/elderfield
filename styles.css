@@ -93,6 +93,63 @@ h2 {
   font-size: 1.05rem;
 }
 
+.build-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.build-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 116px;
+  border: 1px solid rgba(62, 46, 37, 0.35);
+  padding: 6px 10px;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.build-status[data-state="green"] {
+  background: rgba(98, 140, 84, 0.16);
+  color: #335129;
+}
+
+.build-status[data-state="yellow"] {
+  background: rgba(197, 163, 71, 0.18);
+  color: #6b5318;
+}
+
+.build-status[data-state="red"] {
+  background: rgba(166, 70, 70, 0.16);
+  color: #7b2727;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.build-status[data-state="green"] .status-dot {
+  background: #4d8b44;
+}
+
+.build-status[data-state="yellow"] .status-dot {
+  background: #c39d32;
+}
+
+.build-status[data-state="red"] .status-dot {
+  background: #bf4a4a;
+}
+
+.build-note {
+  margin-top: 10px;
+}
+
 .body-copy {
   margin-top: 10px;
   color: var(--muted);

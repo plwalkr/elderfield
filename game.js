@@ -13,6 +13,10 @@ const inventoryListEl = document.getElementById("inventory-list");
 const messageBoxEl = document.getElementById("message-box");
 const messageTitleEl = document.getElementById("message-title");
 const messageTextEl = document.getElementById("message-text");
+const buildVersionEl = document.getElementById("build-version");
+const buildStatusEl = document.getElementById("build-status");
+const buildStatusLabelEl = document.getElementById("build-status-label");
+const buildNoteEl = document.getElementById("build-note");
 const saveStatusEl = document.getElementById("save-status");
 const saveDetailEl = document.getElementById("save-detail");
 const saveButtonEl = document.getElementById("save-button");
@@ -22,6 +26,12 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
+const BUILD_VERSION = "v0.2.1-benchmark";
+const BUILD_STATUS_TEXT = {
+  green: "Good",
+  yellow: "Needs Help",
+  red: "Bad Error"
+};
 
 const screens = {
   [benchmarkScreen.id]: benchmarkScreen
@@ -171,7 +181,10 @@ function createRuntimeState() {
     meta: {
       saveLoaded: false,
       lastSaveReason: "Fresh journey",
-      lastSaveTime: null
+      lastSaveTime: null,
+      buildVersion: BUILD_VERSION,
+      buildStatus: "green",
+      buildNote: "Green means we are good. Yellow means this build needs help. Red means a bad error is active."
     }
   };
 }
@@ -234,6 +247,7 @@ function saveProgress(reason = "Progress saved") {
   if (!store) {
     state.meta.saveLoaded = false;
     state.meta.lastSaveReason = "Save unavailable";
+    setBuildStatus("yellow", "Yellow means this build needs help. Save storage is unavailable, so persistence needs attention.");
     updateSavePanel();
     return false;
   }
@@ -244,11 +258,15 @@ function saveProgress(reason = "Progress saved") {
     state.meta.saveLoaded = true;
     state.meta.lastSaveReason = reason;
     state.meta.lastSaveTime = payload.savedAt;
+    if (state.meta.buildStatus !== "red") {
+      setBuildStatus("green", "Green means we are good. Core benchmark systems are running and saving normally.");
+    }
     updateSavePanel();
     return true;
   } catch (error) {
     state.meta.saveLoaded = false;
     state.meta.lastSaveReason = "Save failed";
+    setBuildStatus("yellow", "Yellow means this build needs help. Save failed, so persistence needs attention.");
     updateSavePanel();
     console.error("Failed to save Elderfield benchmark progress.", error);
     return false;
@@ -267,11 +285,15 @@ function loadProgress() {
     state.meta.saveLoaded = true;
     state.meta.lastSaveReason = "Journey restored";
     state.meta.lastSaveTime = payload.savedAt;
+    if (state.meta.buildStatus !== "red") {
+      setBuildStatus("green", "Green means we are good. The benchmark restored cleanly from save.");
+    }
     updateSavePanel();
     return true;
   } catch (error) {
     state.meta.saveLoaded = false;
     state.meta.lastSaveReason = "Save unreadable";
+    setBuildStatus("yellow", "Yellow means this build needs help. A save file could not be read cleanly.");
     updateSavePanel();
     console.error("Failed to load Elderfield benchmark progress.", error);
     return false;
@@ -318,6 +340,38 @@ function updateSavePanel() {
   saveDetailEl.textContent = `${describeCheckpoint()} • ${formatSaveTime(state.meta.lastSaveTime)}`;
 }
 
+function updateBuildStatusPanel() {
+  if (buildVersionEl) {
+    buildVersionEl.textContent = state.meta.buildVersion;
+  }
+
+  if (buildStatusEl) {
+    buildStatusEl.dataset.state = state.meta.buildStatus;
+  }
+
+  if (buildStatusLabelEl) {
+    buildStatusLabelEl.textContent = BUILD_STATUS_TEXT[state.meta.buildStatus] || BUILD_STATUS_TEXT.green;
+  }
+
+  if (buildNoteEl) {
+    buildNoteEl.textContent = state.meta.buildNote;
+  }
+}
+
+function setBuildStatus(level, note, options = {}) {
+  if (!BUILD_STATUS_TEXT[level]) return;
+
+  if (state.meta.buildStatus === "red" && level !== "red" && !options.force) {
+    return;
+  }
+
+  state.meta.buildStatus = level;
+  if (note) {
+    state.meta.buildNote = note;
+  }
+  updateBuildStatusPanel();
+}
+
 function renderInventory() {
   if (!inventoryListEl) return;
   const chips = [];
@@ -350,6 +404,7 @@ function updateHud() {
   objectiveTextEl.textContent = objectiveText();
   renderInventory();
   updateSavePanel();
+  updateBuildStatusPanel();
 }
 
 function commitProgress(reason) {
@@ -848,9 +903,11 @@ function bootGame() {
   if (restored) {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
+    setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
     showMessage("Journey Restored", "Benchmark progress loaded. Save/load, progression, and debug remain active while the art direction resets around this single screen.");
   } else {
     startFreshJourney();
+    setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
   }
 }
 
@@ -882,12 +939,29 @@ window.ElderfieldDebug = {
     state.debug = !state.debug;
     return state.debug;
   },
+  setBuildStatus,
+  getBuildStatus() {
+    return {
+      version: state.meta.buildVersion,
+      status: state.meta.buildStatus,
+      note: state.meta.buildNote
+    };
+  },
   getStoredSave() {
     const store = storage();
     const raw = store ? store.getItem(SAVE_KEY) : null;
     return raw ? JSON.parse(raw) : null;
   }
 };
+
+window.addEventListener("error", (event) => {
+  const message = event?.message || "Unknown runtime error";
+  setBuildStatus("red", `Red means a bad error is active. Runtime error: ${message}`, { force: true });
+});
+
+window.addEventListener("unhandledrejection", () => {
+  setBuildStatus("red", "Red means a bad error is active. An unhandled async error reached the runtime.", { force: true });
+});
 
 bootGame();
 requestAnimationFrame(loop);
