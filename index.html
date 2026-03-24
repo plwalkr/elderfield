@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elderfield Prototype - Return Light</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel">
+      <div class="panel-block title-block">
+        <p class="eyebrow">Playable Prototype</p>
+        <h1>Elderfield</h1>
+        <p class="subtitle">Return Light Slice</p>
+        <p class="body-copy">
+          Post-Whisperroot browser prototype covering Rowan Hollow revisit through Highroad Vale and the first Greyfen exterior screens.
+        </p>
+      </div>
+
+      <div class="panel-block">
+        <h2>Current Screen</h2>
+        <p id="screen-id" class="mono">RH-01</p>
+        <p id="screen-name" class="strong">Rowan Hollow Square</p>
+        <p id="screen-region" class="muted">Opening Area</p>
+      </div>
+
+      <div class="panel-block">
+        <h2>Objective</h2>
+        <p id="objective-text" class="objective"></p>
+      </div>
+
+      <div class="panel-block">
+        <h2>Inventory</h2>
+        <div id="inventory-list" class="inventory-list">
+          <span class="chip">Sword</span>
+          <span class="chip">Lantern of Dawn</span>
+        </div>
+      </div>
+
+      <div class="panel-block">
+        <h2>Save State</h2>
+        <p id="save-status" class="strong">Fresh journey</p>
+        <p id="save-detail" class="muted">No checkpoint saved yet.</p>
+        <div class="save-actions">
+          <button id="save-button" type="button" class="save-button">Save now</button>
+          <button id="reset-button" type="button" class="save-button secondary">Reset save</button>
+        </div>
+      </div>
+
+      <div class="panel-block">
+        <h2>Controls</h2>
+        <ul class="controls">
+          <li><span class="mono">WASD / Arrows</span> Move</li>
+          <li><span class="mono">J</span> Slash</li>
+          <li><span class="mono">E</span> Interact / Light / Burn</li>
+          <li><span class="mono">Enter</span> Close message</li>
+        </ul>
+      </div>
+
+      <div class="panel-block">
+        <h2>Implemented Screens</h2>
+        <p class="muted">
+          RH-01, RH-02, RH-03, RH-04, HV-01, HV-02, HV-03, HV-04, HV-06, HV-07, HV-10, GF-01, GF-02, GF-03, GF-04, GF-05
+        </p>
+      </div>
+    </aside>
+
+    <main class="stage-column">
+      <div class="stage-frame">
+        <canvas id="game" width="320" height="192" aria-label="Elderfield prototype game view"></canvas>
+        <div id="message-box" class="message-box hidden">
+          <p id="message-title" class="message-title"></p>
+          <p id="message-text" class="message-text"></p>
+          <p class="message-hint">Press Enter</p>
+        </div>
+      </div>
+
+      <div class="legend-row">
+        <div class="legend-card">
+          <p class="legend-label">Prototype Goal</p>
+          <p class="legend-value">Inspect the mural, reopen the Highroad, awaken the Wayside bell, open Greyfen, and reveal the lie at False Marker Knoll.</p>
+        </div>
+        <div class="legend-card">
+          <p class="legend-label">Greyfen Hooks</p>
+          <p class="legend-value">This pass adds a persistent Greyfen descent lift, the optional Sunken Chapel forecourt branch, and stateful Toma / Nara quest reactions.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="./game.js"></script>
+</body>
+</html>
