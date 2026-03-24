@@ -139,7 +139,12 @@ function createDefaultSaveData() {
       sunkenBraziersLit: [false, false],
       sunkenForecourtCleared: false,
       falseMarkerBraziersLit: [false, false],
-      falseMarkerRevealed: false
+      falseMarkerRevealed: false,
+      graveRowsBurned: false,
+      causewayBraziersLit: [false, false],
+      causewayCleared: false,
+      fenwatchWinchFreed: false,
+      reachedFenwatch: false
     },
     shortcuts: {
       highroadNorthOpen: false,
@@ -147,14 +152,18 @@ function createDefaultSaveData() {
       waysideNorthOpen: false,
       greyfenApproachReady: false,
       greyfenBranchOpen: false,
-      greyfenLiftOpen: false
+      greyfenLiftOpen: false,
+      causewaySouthOpen: false,
+      fenwatchDoorOpen: false
     },
     rewards: {
       shrineCacheCollected: false,
       waysideLoreTabletRead: false,
       shepherdTradeCacheInspected: false,
       marshfootChestCollected: false,
-      sunkenLoreTabletRead: false
+      sunkenLoreTabletRead: false,
+      namelessStoneClueRead: false,
+      memorialHeartCollected: false
     },
     npcPhases: {
       maelin: "opening",
@@ -203,6 +212,7 @@ function normalizeSaveData(raw) {
   normalized.quest.waysideLit = defaults.quest.waysideLit.map((_, index) => Boolean(raw.quest?.waysideLit?.[index]));
   normalized.quest.sunkenBraziersLit = defaults.quest.sunkenBraziersLit.map((_, index) => Boolean(raw.quest?.sunkenBraziersLit?.[index]));
   normalized.quest.falseMarkerBraziersLit = defaults.quest.falseMarkerBraziersLit.map((_, index) => Boolean(raw.quest?.falseMarkerBraziersLit?.[index]));
+  normalized.quest.causewayBraziersLit = defaults.quest.causewayBraziersLit.map((_, index) => Boolean(raw.quest?.causewayBraziersLit?.[index]));
 
   return normalized;
 }
@@ -292,6 +302,8 @@ function syncDerivedProgress() {
   state.shortcuts.greyfenApproachReady = state.quest.reachedShepherdsRest;
   state.shortcuts.greyfenBranchOpen = state.quest.greyfenBranchBurned;
   state.shortcuts.greyfenLiftOpen = state.quest.greyfenLiftFreed;
+  state.shortcuts.causewaySouthOpen = state.quest.causewayCleared;
+  state.shortcuts.fenwatchDoorOpen = state.quest.fenwatchWinchFreed;
 
   if (state.quest.highroadBurned) {
     state.npcPhases.maelin = "road_open";
@@ -371,6 +383,9 @@ function syncDerivedProgress() {
   if (state.quest.falseMarkerRevealed && state.sideQuests.namelessStone === "unstarted") {
     state.sideQuests.namelessStone = "active";
   }
+  if (state.rewards.namelessStoneClueRead && state.sideQuests.namelessStone === "active") {
+    state.sideQuests.namelessStone = "updated";
+  }
 }
 
 function buildSaveData() {
@@ -383,7 +398,8 @@ function buildSaveData() {
       ...cloneData(state.quest),
       waysideLit: state.quest.waysideLit.map((value) => Boolean(value)),
       sunkenBraziersLit: state.quest.sunkenBraziersLit.map((value) => Boolean(value)),
-      falseMarkerBraziersLit: state.quest.falseMarkerBraziersLit.map((value) => Boolean(value))
+      falseMarkerBraziersLit: state.quest.falseMarkerBraziersLit.map((value) => Boolean(value)),
+      causewayBraziersLit: state.quest.causewayBraziersLit.map((value) => Boolean(value))
     },
     shortcuts: cloneData(state.shortcuts),
     rewards: cloneData(state.rewards),
@@ -527,10 +543,22 @@ function objectiveText() {
   if (!state.quest.falseMarkerRevealed) {
     return "Follow the dry path south to False Marker Knoll and reveal what the memorial is hiding.";
   }
+  if (!state.quest.graveRowsBurned) {
+    return "Push south into the Memorial Flats and burn clear the thorn-choked grave rows.";
+  }
+  if (!state.quest.causewayCleared) {
+    return "Reach the Drowned Causeway and light its braziers to cut the fog and expose the safe path.";
+  }
+  if (!state.quest.reachedFenwatch) {
+    return "Make the final push to Fenwatch Approach and free the catacomb winch.";
+  }
+  if (!state.quest.fenwatchWinchFreed) {
+    return "Burn the thorn from Fenwatch's chain winch and open the catacomb door.";
+  }
   if (!state.quest.sunkenForecourtCleared) {
     return "The main clue is uncovered. Optional: take the west branch from Marshfoot Landing and clear the Sunken Chapel forecourt.";
   }
-  return "Greyfen's first exterior pass is complete. Revisit Toma, Nara, and the chapel forecourt to see the new stateful route changes.";
+  return "Greyfen's exterior route now reaches Fenwatch. Revisit Toma, Nara, and the chapel forecourt, or get ready for the dungeon pass.";
 }
 
 function updateHud() {
@@ -909,6 +937,11 @@ function enterScreen(id) {
     commitProgress("Checkpoint saved: Shepherd's Rest reached");
     showMessage("Shepherd's Rest", "The upland road finally widens here. Yselle has made camp, Greyfen lies below the southeast descent, and the march no longer waits for another prototype pass.");
   }
+  if (id === "GF-10" && !state.quest.reachedFenwatch) {
+    state.quest.reachedFenwatch = true;
+    commitProgress("Checkpoint saved: Fenwatch Approach reached");
+    showMessage("Fenwatch Approach", "The marsh tightens into old military stone here. Fenwatch's buried gate is in front of you now, with the catacomb door still chained fast.");
+  }
 }
 
 function loadScreen(id, spawn = "default", options = {}) {
@@ -1104,6 +1137,38 @@ function backgroundGF05() {
   drawReeds(18, 124, 42, 42);
   drawReeds(262, 126, 30, 40);
   drawFogBand(0, 0, WIDTH, 24);
+}
+
+function backgroundGF06() {
+  marshBackdrop();
+  drawRoadRect(126, 0, 68, HEIGHT, true);
+  drawStoneRect(34, 48, 36, 28);
+  drawStoneRect(242, 52, 34, 24);
+  drawWaterRect(0, 128, 98, 64);
+  drawWaterRect(222, 128, 98, 64);
+  drawReeds(20, 126, 46, 42);
+  drawReeds(254, 126, 36, 40);
+  drawFogBand(0, 0, WIDTH, 18);
+}
+
+function backgroundGF07() {
+  marshBackdrop();
+  drawWaterRect(0, 0, 104, HEIGHT);
+  drawWaterRect(216, 0, 104, HEIGHT);
+  drawStoneRect(104, 0, 112, HEIGHT);
+  drawRoadRect(132, 0, 56, HEIGHT, true);
+  drawFogBand(0, 0, WIDTH, 46);
+}
+
+function backgroundGF10() {
+  marshBackdrop();
+  drawStoneRect(96, 24, 128, 124);
+  drawRoadRect(132, 0, 56, 148, true);
+  drawStoneRect(128, 18, 64, 16);
+  drawStoneRect(122, 122, 76, 22);
+  drawWaterRect(0, 134, 84, 58);
+  drawWaterRect(236, 134, 84, 58);
+  drawFogBand(0, 0, WIDTH, 28);
 }
 
 const screens = {
@@ -2169,7 +2234,8 @@ const screens = {
     region: "Greyfen March",
     spawns: {
       default: { x: 150, y: 24 },
-      north: { x: 150, y: 24 }
+      north: { x: 150, y: 24 },
+      south: { x: 150, y: 150 }
     },
     draw() {
       backgroundGF05();
@@ -2182,20 +2248,27 @@ const screens = {
       }
     },
     solids() {
-      return [
+      const solids = [
         rect(92, 50, 136, 56),
         rect(0, 124, 88, 68),
         rect(246, 124, 74, 68),
         rect(0, 0, 8, HEIGHT),
         rect(WIDTH - 8, 0, 8, HEIGHT),
-        rect(0, 0, WIDTH, 8),
-        rect(132, HEIGHT - 18, 56, 18)
+        rect(0, 0, WIDTH, 8)
       ];
+      if (!state.quest.falseMarkerRevealed) {
+        solids.push(rect(132, HEIGHT - 18, 56, 18));
+      }
+      return solids;
     },
     transitions() {
-      return [
+      const transitions = [
         { rect: rect(140, -2, 40, 10), to: "GF-02", spawn: "north" }
       ];
+      if (state.quest.falseMarkerRevealed) {
+        transitions.push({ rect: rect(140, HEIGHT - 2, 40, 10), to: "GF-06", spawn: "north" });
+      }
+      return transitions;
     },
     interactables() {
       const items = [
@@ -2247,8 +2320,8 @@ const screens = {
         },
         {
           rect: rect(144, 156, 32, 12),
-          label: "Road south blocked",
-          onInteract: () => showMessage("Memorial Flats", "The path south continues toward the Memorial Flats and Fenwatch, but this prototype stops at the False Marker reveal for now.")
+          label: state.quest.falseMarkerRevealed ? "Road south open" : "Road south blocked",
+          onInteract: () => showMessage("Memorial Flats", state.quest.falseMarkerRevealed ? "With the marker exposed, the dry route south is readable again. The graves ahead lead toward Fenwatch." : "The southward path is choked with mud and half-buried markers. Reveal the truth at this knoll before pressing deeper.")
         }
       ];
       return items;
@@ -2262,6 +2335,263 @@ const screens = {
       return [
         makeEnemy("wraith", 144, 118, { axis: "x", min: 122, max: 176, speed: 16, hp: 1 }),
         makeEnemy("stalker", 196, 122, { axis: "x", min: 178, max: 220, speed: 18, hp: 2 })
+      ];
+    }
+  },
+  "GF-06": {
+    name: "Memorial Flats",
+    region: "Greyfen March",
+    spawns: {
+      default: { x: 150, y: 24 },
+      north: { x: 150, y: 24 },
+      south: { x: 150, y: 150 }
+    },
+    draw() {
+      backgroundGF06();
+      drawBramble(106, 108, 108, 22, state.quest.graveRowsBurned);
+      drawChest(72, 58, state.rewards.memorialHeartCollected);
+    },
+    solids() {
+      const solids = [
+        rect(30, 44, 44, 36),
+        rect(238, 48, 42, 32),
+        rect(0, 126, 94, 66),
+        rect(226, 126, 94, 66),
+        rect(0, 0, 8, HEIGHT),
+        rect(WIDTH - 8, 0, 8, HEIGHT),
+        rect(0, 0, WIDTH, 8)
+      ];
+      if (!state.quest.graveRowsBurned) {
+        solids.push(rect(106, 108, 108, 22));
+      }
+      return solids;
+    },
+    transitions() {
+      const transitions = [
+        { rect: rect(140, -2, 40, 10), to: "GF-05", spawn: "south" }
+      ];
+      if (state.quest.graveRowsBurned) {
+        transitions.push({ rect: rect(140, HEIGHT - 2, 40, 10), to: "GF-07", spawn: "north" });
+      }
+      return transitions;
+    },
+    interactables() {
+      return [
+        {
+          rect: rect(106, 106, 108, 24),
+          label: state.quest.graveRowsBurned ? "Dry path opened" : "Burn grave-thorn rows",
+          onInteract: () => {
+            if (state.quest.graveRowsBurned) {
+              showMessage("Memorial Flats", "The thorn-choked rows burned back enough to restore the dry route south.");
+              return;
+            }
+            if (!hasLanternOfDawn()) {
+              lanternLockedMessage();
+              return;
+            }
+            state.quest.graveRowsBurned = true;
+            commitProgress("Route saved: Memorial Flats grave rows cleared");
+            showMessage("Dry Path Restored", "The Lantern burns through the corruption wound around the graves. A narrow dry line reappears through the flats.");
+          }
+        },
+        {
+          rect: rect(68, 54, 18, 18),
+          label: "Inspect raised tomb",
+          onInteract: () => {
+            if (!state.rewards.memorialHeartCollected) {
+              state.rewards.memorialHeartCollected = true;
+              commitProgress("Reward saved: Memorial Flats heart relic collected");
+              showMessage("Heart Relic", "A heart relic shard lies wrapped in burial cloth atop the raised tomb. Someone hid strength here for whoever came back to remember.");
+              return;
+            }
+            showMessage("Raised Tomb", "Only the imprint of the relic shard remains in the old burial cloth.");
+          }
+        },
+        {
+          rect: rect(238, 54, 20, 18),
+          label: "Read broken headstone",
+          onInteract: () => {
+            if (!state.rewards.namelessStoneClueRead) {
+              state.rewards.namelessStoneClueRead = true;
+              commitProgress("Lore saved: Nameless Stone clue found");
+            }
+            showMessage("Broken Headstone", "A surviving line names a captain transferred 'off the record' before the burial list was rewritten. Nara would understand why that matters.");
+          }
+        }
+      ];
+    },
+    npcs() {
+      return [];
+    },
+    spawnEnemies() {
+      return [
+        makeEnemy("wraith", 152, 92, { axis: "x", min: 126, max: 186, speed: 16, hp: 1 }),
+        makeEnemy("leaper", 116, 140, { axis: "x", min: 102, max: 152, speed: 16, hp: 2 }),
+        makeEnemy("moth", 198, 88, { axis: "y", min: 70, max: 112, speed: 18, hp: 1 })
+      ];
+    }
+  },
+  "GF-07": {
+    name: "Drowned Causeway",
+    region: "Greyfen March",
+    spawns: {
+      default: { x: 150, y: 24 },
+      north: { x: 150, y: 24 },
+      south: { x: 150, y: 150 }
+    },
+    draw() {
+      backgroundGF07();
+      drawBrazier(118, 118, state.quest.causewayBraziersLit[0]);
+      drawBrazier(202, 118, state.quest.causewayBraziersLit[1]);
+      if (!state.shortcuts.causewaySouthOpen) {
+        drawFogBand(104, 124, 112, 44);
+      }
+    },
+    solids() {
+      const solids = [
+        rect(0, 0, 100, HEIGHT),
+        rect(220, 0, 100, HEIGHT),
+        rect(0, 0, WIDTH, 8)
+      ];
+      if (!state.shortcuts.causewaySouthOpen) {
+        solids.push(rect(124, 136, 72, 24));
+      }
+      return solids;
+    },
+    transitions() {
+      const transitions = [
+        { rect: rect(140, -2, 40, 10), to: "GF-06", spawn: "south" }
+      ];
+      if (state.shortcuts.causewaySouthOpen) {
+        transitions.push({ rect: rect(140, HEIGHT - 2, 40, 10), to: "GF-10", spawn: "north" });
+      }
+      return transitions;
+    },
+    interactables() {
+      return [
+        {
+          rect: rect(110, 110, 16, 18),
+          label: state.quest.causewayBraziersLit[0] ? "Brazier lit" : "Light causeway brazier",
+          onInteract: () => {
+            if (!hasLanternOfDawn()) {
+              lanternLockedMessage();
+              return;
+            }
+            if (!state.quest.causewayBraziersLit[0]) {
+              state.quest.causewayBraziersLit[0] = true;
+              commitProgress("Gate state saved: Causeway west brazier lit");
+              showMessage("Causeway Flame", "The west causeway fire cuts a channel through the marsh fog.");
+            }
+          }
+        },
+        {
+          rect: rect(194, 110, 16, 18),
+          label: state.quest.causewayBraziersLit[1] ? "Brazier lit" : "Light causeway brazier",
+          onInteract: () => {
+            if (!hasLanternOfDawn()) {
+              lanternLockedMessage();
+              return;
+            }
+            if (!state.quest.causewayBraziersLit[1]) {
+              state.quest.causewayBraziersLit[1] = true;
+              if (state.quest.causewayBraziersLit.every(Boolean) && !state.quest.causewayCleared) {
+                state.quest.causewayCleared = true;
+                commitProgress("Route saved: Drowned Causeway cleared");
+                showMessage("Fog Cut", "Both braziers flare. The causeway stones appear in clean sequence through the haze, and the path to Fenwatch reveals itself.");
+                return;
+              }
+              commitProgress("Gate state saved: Causeway east brazier lit");
+              showMessage("Causeway Flame", "The east brazier answers the west, but the fog still clings farther south.");
+            }
+          }
+        }
+      ];
+    },
+    npcs() {
+      return [];
+    },
+    spawnEnemies() {
+      return [
+        makeEnemy("stalker", 152, 86, { axis: "x", min: 132, max: 174, speed: 18, hp: 2 }),
+        makeEnemy("moth", 176, 54, { axis: "y", min: 40, max: 82, speed: 18, hp: 1 }),
+        makeEnemy("wraith", 134, 140, { axis: "x", min: 126, max: 186, speed: 16, hp: 1 })
+      ];
+    }
+  },
+  "GF-10": {
+    name: "Fenwatch Approach",
+    region: "Greyfen March",
+    spawns: {
+      default: { x: 150, y: 24 },
+      north: { x: 150, y: 24 }
+    },
+    draw() {
+      backgroundGF10();
+      drawBramble(194, 92, 14, 28, state.shortcuts.fenwatchDoorOpen);
+      if (!state.shortcuts.fenwatchDoorOpen) {
+        ctx.fillStyle = "#423c37";
+        ctx.fillRect(134, 122, 52, 16);
+      } else {
+        ctx.fillStyle = "#4d443d";
+        ctx.fillRect(134, 118, 52, 8);
+      }
+      ctx.fillStyle = "#7b5a3d";
+      ctx.fillRect(192, 90, 8, 18);
+    },
+    solids() {
+      const solids = [
+        rect(94, 22, 36, 126),
+        rect(190, 22, 40, 126),
+        rect(0, 132, 86, 60),
+        rect(234, 132, 86, 60),
+        rect(0, 0, WIDTH, 8),
+        rect(0, 0, 8, HEIGHT),
+        rect(WIDTH - 8, 0, 8, HEIGHT)
+      ];
+      if (!state.shortcuts.fenwatchDoorOpen) {
+        solids.push(rect(134, 122, 52, 16));
+      }
+      return solids;
+    },
+    transitions() {
+      return [
+        { rect: rect(140, -2, 40, 10), to: "GF-07", spawn: "south" }
+      ];
+    },
+    interactables() {
+      return [
+        {
+          rect: rect(188, 88, 18, 22),
+          label: state.shortcuts.fenwatchDoorOpen ? "Winch freed" : "Burn chain winch thorn",
+          onInteract: () => {
+            if (state.shortcuts.fenwatchDoorOpen) {
+              showMessage("Fenwatch Winch", "The chain winch is clear now. The catacomb door stands open for the next pass.");
+              return;
+            }
+            if (!hasLanternOfDawn()) {
+              lanternLockedMessage();
+              return;
+            }
+            state.quest.fenwatchWinchFreed = true;
+            commitProgress("Dungeon gate saved: Fenwatch winch freed");
+            showMessage("Fenwatch Opens", "The Lantern strips the thorn off the chain winch. With a grinding pull, the catacomb door parts just enough for the way below to breathe.");
+          }
+        },
+        {
+          rect: rect(144, 120, 32, 18),
+          label: "Inspect catacomb door",
+          onInteract: () => showMessage("Fenwatch Catacombs", state.shortcuts.fenwatchDoorOpen ? "The overworld route now reaches the dungeon door. The Fenwatch interior is the next build pass." : "The catacomb door is still sealed. Free the chain winch before the way below can open.")
+        }
+      ];
+    },
+    npcs() {
+      return [];
+    },
+    spawnEnemies() {
+      return [
+        makeEnemy("hound", 150, 92, { axis: "x", min: 138, max: 170, speed: 20, hp: 2 }),
+        makeEnemy("wraith", 154, 62, { axis: "y", min: 46, max: 86, speed: 16, hp: 1 }),
+        makeEnemy("moth", 110, 98, { axis: "x", min: 102, max: 126, speed: 18, hp: 1 })
       ];
     }
   }

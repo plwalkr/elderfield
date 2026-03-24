@@ -11,10 +11,11 @@ This first browser prototype covers:
 - Watchgate opening
 - Bell of the Wayside echo
 - Shepherd's Rest opening the Greyfen branch
-- first Greyfen exterior screens through False Marker Knoll
+- first Greyfen exterior screens through Fenwatch Approach
 - a persistent Greyfen descent return lift
 - the optional Sunken Chapel forecourt branch
 - stateful Greyfen NPC and quest reactions
+- Memorial Flats, Drowned Causeway, and Fenwatch door progression
 
 Implemented screens:
 
@@ -34,6 +35,9 @@ Implemented screens:
 - `GF-03` Reedsplit Crossing
 - `GF-04` Sunken Chapel Forecourt
 - `GF-05` False Marker Knoll
+- `GF-06` Memorial Flats
+- `GF-07` Drowned Causeway
+- `GF-10` Fenwatch Approach
 
 ## Run
 
@@ -62,3 +66,4 @@ Then browse to `http://localhost:8000`.
 - Saved state currently includes quest flags, item flags, shortcut and gate states, collected rewards, NPC dialogue phases, side-quest states, and the latest checkpoint screen/spawn.
 - The sidebar `Save State` panel shows the active checkpoint and last save reason, and includes `Save now` / `Reset save` controls for quick testing.
 - Greyfen-specific saved state now includes the branch opening at Shepherd's Rest, the descent lift shortcut, Toma/Nara/Mirelle phase changes, the Sunken Chapel branch and forecourt clear, the False Marker reveal, and related side-quest updates.
+- The south Greyfen route now also saves Memorial Flats clearance, Drowned Causeway brazier states, Fenwatch arrival, the Fenwatch winch/door state, the Nameless Stone clue pickup, and the Memorial Flats heart relic reward.
