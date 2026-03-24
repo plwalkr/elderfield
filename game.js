@@ -33,6 +33,10 @@ const palette = {
   roadShade: "#916f48",
   stone: "#8d8b82",
   stoneDark: "#6a6862",
+  crypt: "#595651",
+  cryptDark: "#312d2b",
+  cryptFloor: "#7a766e",
+  chain: "#b7aa86",
   wood: "#6b4933",
   roof: "#8a5747",
   chapel: "#d7cfbf",
@@ -52,7 +56,7 @@ const keysDown = new Set();
 const keysPressed = new Set();
 
 window.addEventListener("keydown", (event) => {
-  const tracked = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyW", "KeyA", "KeyS", "KeyD", "KeyE", "KeyJ", "Enter", "Space", "Escape"];
+  const tracked = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyW", "KeyA", "KeyS", "KeyD", "KeyE", "KeyJ", "KeyK", "Enter", "Space", "Escape"];
   if (tracked.includes(event.code)) {
     event.preventDefault();
   }
@@ -144,7 +148,13 @@ function createDefaultSaveData() {
       causewayBraziersLit: [false, false],
       causewayCleared: false,
       fenwatchWinchFreed: false,
-      reachedFenwatch: false
+      reachedFenwatch: false,
+      fenwatchHallEchoSeen: false,
+      fenwatchSluiceOpened: false,
+      fenwatchReliquaryGateOpen: false,
+      fenwatchBridgePulled: false,
+      fenwatchTestimonySeen: false,
+      fenwatchSealDoorSeen: false
     },
     shortcuts: {
       highroadNorthOpen: false,
@@ -154,7 +164,9 @@ function createDefaultSaveData() {
       greyfenBranchOpen: false,
       greyfenLiftOpen: false,
       causewaySouthOpen: false,
-      fenwatchDoorOpen: false
+      fenwatchDoorOpen: false,
+      fenwatchReliquaryOpen: false,
+      fenwatchBridgeOpen: false
     },
     rewards: {
       shrineCacheCollected: false,
@@ -163,7 +175,9 @@ function createDefaultSaveData() {
       marshfootChestCollected: false,
       sunkenLoreTabletRead: false,
       namelessStoneClueRead: false,
-      memorialHeartCollected: false
+      memorialHeartCollected: false,
+      fenwatchLedgerRead: false,
+      fenwatchTestimonyTabletRead: false
     },
     npcPhases: {
       maelin: "opening",
@@ -304,6 +318,8 @@ function syncDerivedProgress() {
   state.shortcuts.greyfenLiftOpen = state.quest.greyfenLiftFreed;
   state.shortcuts.causewaySouthOpen = state.quest.causewayCleared;
   state.shortcuts.fenwatchDoorOpen = state.quest.fenwatchWinchFreed;
+  state.shortcuts.fenwatchReliquaryOpen = state.quest.fenwatchReliquaryGateOpen;
+  state.shortcuts.fenwatchBridgeOpen = state.quest.fenwatchBridgePulled;
 
   if (state.quest.highroadBurned) {
     state.npcPhases.maelin = "road_open";
@@ -502,8 +518,16 @@ function hasLanternOfDawn() {
   return Boolean(state.items.lanternOfDawn);
 }
 
+function hasMarshHook() {
+  return Boolean(state.items.marshHook);
+}
+
 function lanternLockedMessage() {
   showMessage("Lantern Needed", "This action needs the Lantern of Dawn. The slice starts with it equipped, and later saves will treat it as a persistent item unlock.");
+}
+
+function marshHookLockedMessage() {
+  showMessage("Marsh Hook Needed", "This anchor point needs the Marsh Hook. The catacombs are showing you the route now so the item payoff reads cleanly when you reach the reliquary.");
 }
 
 function showMessage(title, text) {
@@ -555,10 +579,25 @@ function objectiveText() {
   if (!state.quest.fenwatchWinchFreed) {
     return "Burn the thorn from Fenwatch's chain winch and open the catacomb door.";
   }
+  if (!state.quest.fenwatchHallEchoSeen) {
+    return "Enter Fenwatch Catacombs and read the Hall of Names.";
+  }
+  if (!state.quest.fenwatchReliquaryGateOpen) {
+    return "Work through Fenwatch's sluice and bell route to open the Warden Reliquary.";
+  }
+  if (!state.items.marshHook) {
+    return "Claim the Marsh Hook from the Warden Reliquary.";
+  }
+  if (!state.quest.fenwatchBridgePulled) {
+    return "Use the Marsh Hook in Chain Gallery to pull a path deeper into Fenwatch.";
+  }
+  if (!state.quest.fenwatchTestimonySeen) {
+    return "Cross into the Testimony Vault and uncover what Fenwatch buried with its dead.";
+  }
   if (!state.quest.sunkenForecourtCleared) {
     return "The main clue is uncovered. Optional: take the west branch from Marshfoot Landing and clear the Sunken Chapel forecourt.";
   }
-  return "Greyfen's exterior route now reaches Fenwatch. Revisit Toma, Nara, and the chapel forecourt, or get ready for the dungeon pass.";
+  return "Fenwatch's first dungeon slice is complete. Revisit Greyfen with the Marsh Hook, or carry the catacomb story deeper in the next pass.";
 }
 
 function updateHud() {
@@ -585,6 +624,18 @@ function drawPanel(x, y, w, h, title, body) {
   ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
   drawPixelText(title, x + 8, y + 12, "#f7e2a2", "left", 8);
   drawPixelText(body, x + 8, y + 26, palette.white, "left", 7);
+}
+
+function drawPromptLine(text) {
+  if (!text) return;
+  const width = text.length * 6 + 14;
+  const x = WIDTH / 2 - width / 2;
+  const y = HEIGHT - 18;
+  ctx.fillStyle = "rgba(16, 12, 10, 0.74)";
+  ctx.fillRect(x, y, width, 12);
+  ctx.strokeStyle = "rgba(247, 227, 165, 0.75)";
+  ctx.strokeRect(x + 0.5, y + 0.5, width - 1, 11);
+  drawPixelText(text, x + width / 2, y + 8, palette.white, "center", 7);
 }
 
 function drawHouse(x, y, w, h) {
@@ -619,6 +670,62 @@ function drawReeds(x, y, w, h) {
     ctx.fillRect(px, y + h - height, 2, height);
     ctx.fillRect(px + 2, y + h - height + 2, 2, height - 2);
   }
+}
+
+function cryptBackdrop() {
+  ctx.fillStyle = palette.cryptDark;
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.fillStyle = palette.crypt;
+  ctx.fillRect(8, 8, WIDTH - 16, HEIGHT - 16);
+  ctx.fillStyle = palette.cryptFloor;
+  for (let y = 16; y < HEIGHT - 16; y += 16) {
+    for (let x = 16; x < WIDTH - 16; x += 24) {
+      ctx.fillRect(x, y, 10, 2);
+    }
+  }
+}
+
+function drawPortcullis(x, y, w, h, open) {
+  ctx.fillStyle = open ? "#5a5148" : "#463f39";
+  ctx.fillRect(x, y, w, open ? 6 : h);
+  if (!open) {
+    ctx.strokeStyle = "#8a7a62";
+    for (let px = x + 4; px < x + w; px += 8) {
+      ctx.beginPath();
+      ctx.moveTo(px, y);
+      ctx.lineTo(px, y + h);
+      ctx.stroke();
+    }
+  }
+}
+
+function drawBell(x, y) {
+  ctx.fillStyle = "#957651";
+  ctx.fillRect(x - 8, y - 6, 16, 10);
+  ctx.fillStyle = "#6c5841";
+  ctx.fillRect(x - 2, y + 4, 4, 4);
+}
+
+function drawChainSegment(x, y, length = 24, vertical = true) {
+  ctx.fillStyle = palette.chain;
+  if (vertical) {
+    for (let py = y; py < y + length; py += 6) {
+      ctx.fillRect(x, py, 2, 4);
+    }
+  } else {
+    for (let px = x; px < x + length; px += 6) {
+      ctx.fillRect(px, y, 4, 2);
+    }
+  }
+}
+
+function drawHookRing(x, y, active = true) {
+  ctx.strokeStyle = active ? "#d3c39b" : "#736b5f";
+  ctx.beginPath();
+  ctx.arc(x, y, 5, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = active ? "#d3c39b" : "#736b5f";
+  ctx.fillRect(x - 1, y - 7, 2, 4);
 }
 
 function drawBramble(x, y, w, h, cleared) {
@@ -720,15 +827,7 @@ function drawNpc(npc) {
 
 function drawPrompt() {
   if (!state.prompt || state.message) return;
-  const text = `${state.prompt.key} ${state.prompt.label}`;
-  const width = text.length * 6 + 14;
-  const x = WIDTH / 2 - width / 2;
-  const y = HEIGHT - 18;
-  ctx.fillStyle = "rgba(16, 12, 10, 0.74)";
-  ctx.fillRect(x, y, width, 12);
-  ctx.strokeStyle = "rgba(247, 227, 165, 0.75)";
-  ctx.strokeRect(x + 0.5, y + 0.5, width - 1, 11);
-  drawPixelText(text, x + width / 2, y + 8, palette.white, "center", 7);
+  drawPromptLine(state.prompt.text);
 }
 
 function drawHearts() {
@@ -816,6 +915,23 @@ function getNearestInteractable(screen) {
     const itemCenter = centerOf(item.rect);
     const d = distance(playerCenter, itemCenter);
     if (d < 24 && d < bestDistance) {
+      best = item;
+      bestDistance = d;
+    }
+  }
+  return best;
+}
+
+function getNearestHookTarget(screen) {
+  if (!screen.hookTargets) return null;
+  const defs = screen.hookTargets(state);
+  const playerCenter = centerOf(state.player);
+  let best = null;
+  let bestDistance = Infinity;
+  for (const item of defs) {
+    const itemCenter = centerOf(item.rect);
+    const d = distance(playerCenter, itemCenter);
+    if (d < 32 && d < bestDistance) {
       best = item;
       bestDistance = d;
     }
@@ -912,10 +1028,24 @@ function attackEnemies() {
   }
 }
 
+function movePlayerTo(x, y, dir = state.player.dir) {
+  state.player.x = x;
+  state.player.y = y;
+  state.player.dir = dir;
+}
+
 function handleInteraction() {
   const screen = screens[state.currentScreen];
   const nearest = getNearestInteractable(screen);
-  state.prompt = nearest ? { label: nearest.label, key: "[E]" } : null;
+  const hookTarget = hasMarshHook() ? getNearestHookTarget(screen) : null;
+  const promptParts = [];
+  if (nearest) promptParts.push(`[E] ${nearest.label}`);
+  if (hookTarget) promptParts.push(`[K] ${hookTarget.label || "Use Marsh Hook"}`);
+  state.prompt = promptParts.length ? { text: promptParts.join("   ") } : null;
+  if (hookTarget && justPressed("KeyK")) {
+    hookTarget.onHook();
+    return;
+  }
   if (nearest && justPressed("KeyE")) {
     nearest.onInteract();
   }
@@ -1169,6 +1299,61 @@ function backgroundGF10() {
   drawWaterRect(0, 134, 84, 58);
   drawWaterRect(236, 134, 84, 58);
   drawFogBand(0, 0, WIDTH, 28);
+}
+
+function backgroundFC01() {
+  cryptBackdrop();
+  drawStoneRect(128, 18, 64, 18);
+  drawStoneRect(52, 62, 34, 74);
+  drawStoneRect(234, 62, 34, 74);
+  drawWaterRect(204, 120, 84, 36);
+  drawHookRing(248, 116, true);
+  drawChainSegment(248, 86, 28, true);
+}
+
+function backgroundFC02() {
+  cryptBackdrop();
+  drawWaterRect(208, 0, 112, HEIGHT);
+  drawStoneRect(112, 44, 42, 22);
+  drawStoneRect(176, 82, 20, 56);
+  drawChainSegment(166, 36, 40, true);
+}
+
+function backgroundFC03() {
+  cryptBackdrop();
+  drawWaterRect(120, 84, 120, 58);
+  drawStoneRect(38, 26, 54, 24);
+  drawStoneRect(242, 40, 34, 82);
+  drawStoneRect(120, 144, 120, 18);
+}
+
+function backgroundFC04() {
+  cryptBackdrop();
+  drawStoneRect(24, 20, 60, 42);
+  drawWaterRect(132, 64, 88, 50);
+  drawBell(70, 48);
+  drawChainSegment(70, 18, 28, true);
+  drawHookRing(172, 90, true);
+  if (state.shortcuts.fenwatchBridgeOpen) {
+    drawStoneRect(132, 88, 88, 14);
+  }
+}
+
+function backgroundFC05() {
+  cryptBackdrop();
+  drawStoneRect(122, 54, 76, 54);
+  drawChainSegment(160, 36, 20, true);
+  drawHookRing(160, 50, true);
+}
+
+function backgroundFC06() {
+  cryptBackdrop();
+  drawWaterRect(44, 40, 84, 86);
+  drawStoneRect(176, 46, 94, 78);
+  drawBell(86, 62);
+  drawChainSegment(86, 22, 28, true);
+  drawPortcullis(128, 136, 64, 18, state.quest.fenwatchSealDoorSeen);
+  drawHookRing(118, 62, true);
 }
 
 const screens = {
