@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Elderfield Prototype - Return Light</title>
+  <title>Elderfield Prototype - Visual Benchmark</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="shell">
     <aside class="panel">
       <div class="panel-block title-block">
-        <p class="eyebrow">Playable Prototype</p>
+        <p class="eyebrow">Visual Benchmark</p>
         <h1>Elderfield</h1>
-        <p class="subtitle">Return Light Slice</p>
+        <p class="subtitle">Warden's Rise</p>
         <p class="body-copy">
-          Post-Whisperroot browser prototype covering Rowan Hollow revisit through Highroad Vale, Greyfen March, and the first Fenwatch Catacombs interior pass.
+          One handcrafted overworld screen built as the new visual law for Elderfield. The goal here is composition, atmosphere, tile readability, and a reusable sprite pipeline.
         </p>
       </div>
 
@@ -54,15 +54,16 @@
           <li><span class="mono">WASD / Arrows</span> Move</li>
           <li><span class="mono">J</span> Slash</li>
           <li><span class="mono">E</span> Interact / Light / Burn</li>
-          <li><span class="mono">K</span> Use Marsh Hook</li>
+          <li><span class="mono">Escape</span> Pause</li>
+          <li><span class="mono">`</span> Debug overlay</li>
           <li><span class="mono">Enter</span> Close message</li>
         </ul>
       </div>
 
       <div class="panel-block">
-        <h2>Implemented Screens</h2>
+        <h2>Benchmark Contents</h2>
         <p class="muted">
-          RH-01, RH-02, RH-03, RH-04, HV-01, HV-02, HV-03, HV-04, HV-06, HV-07, HV-10, GF-01, GF-02, GF-03, GF-04, GF-05, GF-06, GF-07, GF-08, GF-09, GF-10, FC-01, FC-02, FC-03, FC-04, FC-05, FC-06
+          Terrace cliffs, guided road line, grouped trees, one watch-house, one NPC, one roaming enemy, one landmark focal point, two readable exits, and a small optional reward pocket.
         </p>
       </div>
     </aside>
@@ -79,17 +80,19 @@
 
       <div class="legend-row">
         <div class="legend-card">
-          <p class="legend-label">Prototype Goal</p>
-          <p class="legend-value">Inspect the mural, reopen the Highroad, cross Greyfen, enter Fenwatch, claim the Marsh Hook, and uncover the buried testimony below the vault.</p>
+          <p class="legend-label">Benchmark Goal</p>
+          <p class="legend-value">Read the Warden Stone, talk to Talan, clear the briar choke, and claim the watch-cache while evaluating the screen's readability.</p>
         </div>
         <div class="legend-card">
-          <p class="legend-label">Dungeon Slice</p>
-          <p class="legend-value">Fenwatch now includes a six-screen interior loop, and the Marsh Hook return pass extends back into Greyfen through Bellwater Lock and Memorial Isle.</p>
+          <p class="legend-label">Pipeline Shift</p>
+          <p class="legend-value">All world art in this pass is atlas-driven. The active environment is assembled from reusable tiles and sprites instead of smooth prototype geometry.</p>
         </div>
       </div>
     </main>
   </div>
 
+  <script src="./assets/benchmark-atlas.js"></script>
+  <script src="./data/benchmark-screen.js"></script>
   <script src="./game.js"></script>
 </body>
 </html>
