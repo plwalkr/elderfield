@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.3-hv04";
+const BUILD_VERSION = "v0.3.5-hv06";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -121,13 +121,20 @@ function createDefaultSaveData() {
       watchgateLeftLit: false,
       watchgateRightLit: false,
       watchgateWinchCleared: false,
-      watchgateOpen: false
+      watchgateOpen: false,
+      waysideUpperLeftLit: false,
+      waysideUpperRightLit: false,
+      waysideLowerLeftLit: false,
+      waysideLowerRightLit: false,
+      waysideEchoResolved: false
     },
     rewards: {
       watchCacheCollected: false,
       pilgrimCacheCollected: false,
       highroadSupplyCollected: false,
-      watchersCacheCollected: false
+      watchersCacheCollected: false,
+      watchgateWallCacheCollected: false,
+      waysideTabletRead: false
     },
     npcPhases: {
       talan: "waiting"
@@ -219,6 +226,13 @@ function syncDerivedProgress() {
     state.quest.watchgateLeftLit &&
     state.quest.watchgateRightLit &&
     state.quest.watchgateWinchCleared
+  );
+
+  state.quest.waysideEchoResolved = Boolean(
+    state.quest.waysideUpperLeftLit &&
+    state.quest.waysideUpperRightLit &&
+    state.quest.waysideLowerLeftLit &&
+    state.quest.waysideLowerRightLit
   );
 
   if (state.rewards.watchCacheCollected) {
@@ -402,6 +416,21 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "HV-06") {
+    if (!state.quest.waysideEchoResolved) {
+      return "Light all four wayside braziers so the bell shrine answers the road and proves this place is more than a passage screen.";
+    }
+    if (!state.rewards.waysideTabletRead) {
+      return "The shrine has answered. Read the altar tablet beneath the bell so the road's buried memory becomes part of the route, not just scenery.";
+    }
+    return "Bell of the Wayside should now read as a true main-route memory beat: sacred bell, answered fires, and a north road waiting beyond.";
+  }
+  if (state.currentScreen === "HV-05") {
+    if (!state.rewards.watchgateWallCacheCollected) {
+      return "Sweep the west turret pocket so the upper wall feels claimed and memorable, not like empty fortification dressing.";
+    }
+    return "Watchgate Upper Wall should now feel like the first true payoff above the gate: towers, parapet road, and a clear east pull toward the bell road.";
+  }
   if (state.currentScreen === "HV-04") {
     if (!state.quest.watchgateLeftLit || !state.quest.watchgateRightLit) {
       return "Light both gate braziers so Watchgate reads like a true threshold instead of just another climb.";
@@ -620,6 +649,11 @@ function drawCache() {
     atlas.drawSprite(ctx, state.rewards.watchersCacheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
   }
 
+  if (screen.props.wallCache) {
+    const cache = screen.props.wallCache;
+    atlas.drawSprite(ctx, state.rewards.watchgateWallCacheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
+  }
+
   if (screen.props.ledgeCache) {
     const cache = screen.props.ledgeCache;
     atlas.drawSprite(ctx, "chestClosed", cache.x, cache.y);
@@ -747,6 +781,20 @@ function drawDebugOverlay() {
     lineA = `left:${state.quest.watchgateLeftLit} right:${state.quest.watchgateRightLit}`;
     lineB = `winch:${state.quest.watchgateWinchCleared} gate:${state.quest.watchgateOpen}`;
   }
+  if (state.currentScreen === "HV-05") {
+    lineA = `cache:${state.rewards.watchgateWallCacheCollected} wall:upper`;
+    lineB = "path:watchgate parapet";
+  }
+  if (state.currentScreen === "HV-06") {
+    const firesLit = [
+      state.quest.waysideUpperLeftLit,
+      state.quest.waysideUpperRightLit,
+      state.quest.waysideLowerLeftLit,
+      state.quest.waysideLowerRightLit
+    ].filter(Boolean).length;
+    lineA = `fires:${firesLit}/4 echo:${state.quest.waysideEchoResolved}`;
+    lineB = `tablet:${state.rewards.waysideTabletRead} path:wayside`;
+  }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
   drawPixelText(lineB, 14, 64);
@@ -826,6 +874,9 @@ function getSolids() {
     if (!state.quest.watchgateWinchCleared && screen.props.watchgateWinchBriar) {
       solids.push({ ...screen.props.watchgateWinchBriar });
     }
+  }
+  if (state.currentScreen === "HV-06" && !state.quest.waysideEchoResolved && screen.props.northSeal) {
+    solids.push({ ...screen.props.northSeal });
   }
   return solids;
 }
@@ -1172,6 +1223,115 @@ function getInteractionTargets() {
     return targets;
   }
 
+  if (state.currentScreen === "HV-05") {
+    targets.push({
+      rect: screen.props.wallMarker,
+      label: "Read wall marker",
+      onInteract: () => showMessage("Wall Marker", "From the upper wall the kingdom finally opens in two directions at once: the capital road bridge far off in ruin, and Greyfen lying low beneath the mist. Watchgate feels like a real boundary from here, not merely another climb.")
+    });
+
+    targets.push({
+      rect: screen.props.wallCache,
+      label: state.rewards.watchgateWallCacheCollected ? "Inspect turret chest" : "Open turret chest",
+      onInteract: () => {
+        if (!state.rewards.watchgateWallCacheCollected) {
+          state.rewards.watchgateWallCacheCollected = true;
+          commitProgress("Reward saved: Watchgate turret chest collected");
+          showMessage("Turret Chest", "Inside rests the Gate Banner Clasp wrapped in old oilcloth. It is a small reward, but the west turret pocket now proves the wall is a place to own and remember, not just pass through.");
+          return;
+        }
+        showMessage("Turret Chest", "The turret chest is empty now, but the west pocket still reads as a deliberate piece of the wall's design.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look south",
+      onInteract: () => showMessage("South Wall", "Below you, the whole approach resolves at once: the gate court, the upper climb, the lower steps, and the spur beyond. Watchgate finally feels vertical and coherent.")
+    });
+
+    targets.push({
+      rect: screen.props.eastDrop,
+      label: "Inspect east drop",
+      onInteract: () => showMessage("East Drop", "A service descent carries the road down toward the Bell of the Wayside. The wall no longer feels isolated; it now hands the route forward into memory.")
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "HV-06") {
+    const makeWaysideBrazier = (rect, questKey, title) => ({
+      rect,
+      label: state.quest[questKey] ? `Inspect ${title.toLowerCase()}` : `Light ${title.toLowerCase()}`,
+      onInteract: () => {
+        if (state.quest[questKey]) {
+          showMessage(title, `${title} already burns with Lantern fire. The wayside keeps count even when the road does not.`);
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The shrine waits on sacred fire before the bell will answer.");
+          return;
+        }
+        state.quest[questKey] = true;
+        commitProgress(`Route saved: ${title} lit`);
+        if (state.quest.waysideEchoResolved) {
+          showMessage(title, "The fourth flame answers with a low bell-shudder through the stones. The Wayside is awake, and the north road no longer feels mute.");
+          return;
+        }
+        showMessage(title, `${title} catches and steadies. One more part of the shrine remembers what the road once was.`);
+      }
+    });
+
+    targets.push({
+      rect: screen.props.bellShrine,
+      label: "Read bell shrine",
+      onInteract: () => showMessage("Bell Shrine", "Offerings of wax, cord, and weathered flowers have piled here for generations. Even after the kingdom forgot the oath behind it, people still stopped at this bell to ask the road to remember them.")
+    });
+
+    targets.push(makeWaysideBrazier(screen.props.upperLeftBrazier, "waysideUpperLeftLit", "Upper Left Brazier"));
+    targets.push(makeWaysideBrazier(screen.props.upperRightBrazier, "waysideUpperRightLit", "Upper Right Brazier"));
+    targets.push(makeWaysideBrazier(screen.props.lowerLeftBrazier, "waysideLowerLeftLit", "Lower Left Brazier"));
+    targets.push(makeWaysideBrazier(screen.props.lowerRightBrazier, "waysideLowerRightLit", "Lower Right Brazier"));
+
+    targets.push({
+      rect: screen.props.altarTablet,
+      label: state.rewards.waysideTabletRead ? "Read altar tablet" : "Inspect altar tablet",
+      onInteract: () => {
+        if (!state.quest.waysideEchoResolved) {
+          showMessage("Altar Tablet", "Soot and coin offerings hide the inscription. The bell needs all four fires before the stone will yield its testimony.");
+          return;
+        }
+        if (!state.rewards.waysideTabletRead) {
+          state.rewards.waysideTabletRead = true;
+          commitProgress("Lore saved: Wayside altar tablet read");
+          showMessage("Altar Tablet", "The tablet names the Sundering as a wound carried by the road, not a triumph. That one line makes the bell feel like history speaking forward instead of decoration.");
+          return;
+        }
+        showMessage("Altar Tablet", "Pilgrims carved names into the stone lip below the text. The road stayed sacred here long after the kingdom lost the language for why.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.westThreshold,
+      label: "Look west",
+      onInteract: () => showMessage("West Road", "The wall descent and Watchgate rise behind you. The route into the Wayside now feels like a deliberate handoff from fortification to memory.")
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: state.quest.waysideEchoResolved ? "Look north" : "Road waiting",
+      onInteract: () => {
+        if (!state.quest.waysideEchoResolved) {
+          showMessage("North Road", "The road beyond the bell waits in silence. Light all four braziers and let the shrine answer before pushing on.");
+          return;
+        }
+        showMessage("North Road", "The bell has answered and the north road stands ready for Shepherd's Rest. The next production screen should continue there.");
+      }
+    });
+
+    return targets;
+  }
+
   if (state.currentScreen === "BM-02") {
     targets.push({
       rect: screen.props.landmark,
@@ -1425,7 +1585,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus the first four production Highroad screens, all assembled from the same atlas with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus the first six production Highroad screens, all assembled from the same atlas with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -1435,7 +1595,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the Highroad chain now continues through four live production screens under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the Highroad chain now continues through six live production screens under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
