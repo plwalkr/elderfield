@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.2-hv03";
+const BUILD_VERSION = "v0.3.3-hv04";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -117,7 +117,11 @@ function createDefaultSaveData() {
       briarCleared: false,
       pilgrimBriarCleared: false,
       highroadGateCleared: false,
-      watchersUpperBriarCleared: false
+      watchersUpperBriarCleared: false,
+      watchgateLeftLit: false,
+      watchgateRightLit: false,
+      watchgateWinchCleared: false,
+      watchgateOpen: false
     },
     rewards: {
       watchCacheCollected: false,
@@ -211,6 +215,12 @@ function storage() {
 }
 
 function syncDerivedProgress() {
+  state.quest.watchgateOpen = Boolean(
+    state.quest.watchgateLeftLit &&
+    state.quest.watchgateRightLit &&
+    state.quest.watchgateWinchCleared
+  );
+
   if (state.rewards.watchCacheCollected) {
     state.npcPhases.talan = "resolved";
   } else if (state.quest.landmarkRead) {
@@ -392,6 +402,15 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "HV-04") {
+    if (!state.quest.watchgateLeftLit || !state.quest.watchgateRightLit) {
+      return "Light both gate braziers so Watchgate reads like a true threshold instead of just another climb.";
+    }
+    if (!state.quest.watchgateWinchCleared) {
+      return "Burn the briars choking the court winch and let the broken gateworks finally answer the road.";
+    }
+    return "Watchgate South Court should now feel distinct: twin towers, ritual braziers, a cleared winch, and the lifted road beyond.";
+  }
   if (state.currentScreen === "HV-03") {
     if (!state.quest.watchersUpperBriarCleared) {
       return "Burn the thorn-choked wagon pile on the north ramp so the climb can finally reveal the Watchgate road ahead.";
@@ -553,10 +572,29 @@ function drawBriar() {
     return;
   }
 
-  if (state.currentScreen !== "HV-03" || state.quest.watchersUpperBriarCleared || !screen.props.upperBriar) return;
-  const { x, y, w } = screen.props.upperBriar;
-  for (let offset = 0; offset < w; offset += atlas.tileSize) {
-    atlas.drawSprite(ctx, "briar", x + offset, y);
+  if (state.currentScreen === "HV-03") {
+    if (state.quest.watchersUpperBriarCleared || !screen.props.upperBriar) return;
+    const { x, y, w } = screen.props.upperBriar;
+    for (let offset = 0; offset < w; offset += atlas.tileSize) {
+      atlas.drawSprite(ctx, "briar", x + offset, y);
+    }
+    return;
+  }
+
+  if (state.currentScreen === "HV-04") {
+    if (!state.quest.watchgateOpen && screen.props.watchgateGateThorn) {
+      const { x, y, w } = screen.props.watchgateGateThorn;
+      for (let offset = 0; offset < w; offset += atlas.tileSize) {
+        atlas.drawSprite(ctx, "briar", x + offset, y);
+      }
+    }
+
+    if (!state.quest.watchgateWinchCleared && screen.props.watchgateWinchBriar) {
+      const { x, y, w } = screen.props.watchgateWinchBriar;
+      for (let offset = 0; offset < w; offset += atlas.tileSize) {
+        atlas.drawSprite(ctx, "briar", x + offset, y);
+      }
+    }
   }
 }
 
@@ -705,6 +743,10 @@ function drawDebugOverlay() {
     lineA = `gate:${state.quest.watchersUpperBriarCleared} lookout:east`;
     lineB = "path:watcher's upper";
   }
+  if (state.currentScreen === "HV-04") {
+    lineA = `left:${state.quest.watchgateLeftLit} right:${state.quest.watchgateRightLit}`;
+    lineB = `winch:${state.quest.watchgateWinchCleared} gate:${state.quest.watchgateOpen}`;
+  }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
   drawPixelText(lineB, 14, 64);
@@ -776,6 +818,14 @@ function getSolids() {
   }
   if (state.currentScreen === "HV-03" && !state.quest.watchersUpperBriarCleared && screen.props.upperBriar) {
     solids.push({ ...screen.props.upperBriar });
+  }
+  if (state.currentScreen === "HV-04") {
+    if (!state.quest.watchgateOpen && screen.props.watchgateGateThorn) {
+      solids.push({ ...screen.props.watchgateGateThorn });
+    }
+    if (!state.quest.watchgateWinchCleared && screen.props.watchgateWinchBriar) {
+      solids.push({ ...screen.props.watchgateWinchBriar });
+    }
   }
   return solids;
 }
@@ -1017,6 +1067,106 @@ function getInteractionTargets() {
       rect: screen.props.eastLookout,
       label: "Inspect east ledge",
       onInteract: () => showMessage("East Ledge", "A narrow ledge drops away toward Greyfen. Something useful could be reached there later with the right pull across the gap, which is exactly the kind of remembered future pocket this road needs.")
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "HV-04") {
+    targets.push({
+      rect: screen.props.gateStone,
+      label: "Read gate oath",
+      onInteract: () => showMessage("Gate Oath", "Watchgate is more than a bend in the road. Twin ward towers, braziers, and the lift winch make it feel like a kingdom threshold that once chose who passed into the higher vale.")
+    });
+
+    targets.push({
+      rect: screen.props.leftBrazier,
+      label: state.quest.watchgateLeftLit ? "Inspect left brazier" : "Light left brazier",
+      onInteract: () => {
+        if (state.quest.watchgateLeftLit) {
+          showMessage("Left Brazier", "The left brazier already burns with Lantern fire. One side of Watchgate has remembered its duty.");
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The cold brazier wants sacred fire before the court can answer the road.");
+          return;
+        }
+        state.quest.watchgateLeftLit = true;
+        commitProgress("Route saved: Watchgate left brazier lit");
+        if (state.quest.watchgateOpen) {
+          showMessage("Left Brazier", "The last ember catches and the old gate finally yields. Watchgate now reads like a living threshold instead of a dead facade.");
+          return;
+        }
+        showMessage("Left Brazier", "Sacred flame wakes the left brazier. Half the court is answered; the gate still waits on the rest.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.rightBrazier,
+      label: state.quest.watchgateRightLit ? "Inspect right brazier" : "Light right brazier",
+      onInteract: () => {
+        if (state.quest.watchgateRightLit) {
+          showMessage("Right Brazier", "The right brazier is already lit, throwing a warm mark against the broken gate stones.");
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The right brazier remains cold until the Lantern of Dawn touches it.");
+          return;
+        }
+        state.quest.watchgateRightLit = true;
+        commitProgress("Route saved: Watchgate right brazier lit");
+        if (state.quest.watchgateOpen) {
+          showMessage("Right Brazier", "The second flame takes hold and the gate answers at last. The court now has a stronger sense of purpose than any ordinary road screen.");
+          return;
+        }
+        showMessage("Right Brazier", "The right brazier wakes. The court feels more ceremonial now, but the winch still holds the road closed.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.watchgateWinchBriar,
+      label: state.quest.watchgateWinchCleared ? "Inspect cleared winch" : "Burn winch briars",
+      onInteract: () => {
+        if (state.quest.watchgateWinchCleared) {
+          showMessage("Gate Winch", "The winch stands clear again. Even broken machinery gives the court a sense of purpose beyond simple scenery.");
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The winch is still strangled by black thorn.");
+          return;
+        }
+        state.quest.watchgateWinchCleared = true;
+        commitProgress("Route saved: Watchgate winch cleared");
+        if (state.quest.watchgateOpen) {
+          showMessage("Gate Winch", "With the briars burned back, the old mechanism answers the lit braziers and the gate lifts clear of the road.");
+          return;
+        }
+        showMessage("Gate Winch", "The winch is clear now, but the gate still waits for both braziers to answer.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look south",
+      onInteract: () => showMessage("South Court", "The climb below now reads in one unbroken line: spur gate, lower steps, upper road, then this court. The Highroad chain is holding together.")
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: state.quest.watchgateOpen ? "Look beyond gate" : "Gate sealed",
+      onInteract: () => {
+        if (!state.quest.watchgateOpen) {
+          showMessage("North Gate", "Watchgate is still sealed. Light both braziers and free the winch so the court can fulfill its purpose.");
+          return;
+        }
+        showMessage("North Gate", "The gate stands open onto the higher road beyond. The next production screen can continue forward cleanly from here without breaking the law.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.bannerRack,
+      label: "Inspect banner rack",
+      onInteract: () => showMessage("Banner Rack", "Only splintered poles and a strip of blue cloth remain. It is a tiny detail, but it helps the court feel like a guarded place that once mattered, not just a shape in the route.")
     });
 
     return targets;
@@ -1275,7 +1425,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus the first three production Highroad screens, all assembled from the same atlas with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus the first four production Highroad screens, all assembled from the same atlas with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -1285,7 +1435,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the Highroad chain now continues through three live production screens under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the Highroad chain now continues through four live production screens under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
