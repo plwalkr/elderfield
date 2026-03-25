@@ -631,6 +631,90 @@
     return tiles;
   }
 
+  function buildHv07Ground() {
+    const { tiles, place } = fillGrass();
+    const roadTiles = [
+      [9, 11], [10, 11],
+      [9, 10], [10, 10],
+      [8, 9], [9, 9], [10, 9], [11, 9], [12, 9],
+      [7, 8], [8, 8], [9, 8], [10, 8], [11, 8], [12, 8], [13, 8],
+      [8, 7], [9, 7], [10, 7], [11, 7], [12, 7], [13, 7], [14, 7], [15, 7], [16, 7], [17, 7], [18, 7],
+      [9, 6], [10, 6],
+      [9, 5], [10, 5],
+      [9, 4], [10, 4],
+      [9, 3], [10, 3],
+      [9, 2], [10, 2],
+      [13, 9], [14, 10], [15, 11]
+    ];
+
+    for (const [tx, ty] of roadTiles) {
+      place((tx + ty) % 2 === 0 ? "roadA" : "roadB", tx, ty);
+    }
+
+    return tiles;
+  }
+
+  function buildHv07Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 19; tx += 1) {
+      if (tx === 9 || tx === 10) {
+        place("stairs", tx, 5);
+      } else if (tx === 0) {
+        place("cliffLeft", tx, 5);
+      } else if (tx === 19) {
+        place("cliffRight", tx, 5);
+      } else {
+        place("cliffFace", tx, 5);
+      }
+    }
+
+    place("houseRoofL", 2, 7);
+    place("houseRoofM", 3, 7);
+    place("houseRoofR", 4, 7);
+    place("houseWallL", 2, 8);
+    place("houseDoor", 3, 8);
+    place("houseWallR", 4, 8);
+
+    place("ruinL", 5, 8);
+    place("ruinR", 6, 8);
+
+    place("ruinL", 11, 6);
+    place("landmarkTopL", 12, 5);
+    place("landmarkTopR", 13, 5);
+    place("landmarkBaseL", 12, 6);
+    place("landmarkBaseR", 13, 6);
+    place("ruinR", 14, 6);
+
+    place("ruinL", 16, 9);
+    place("ruinR", 17, 9);
+
+    place("treeTL", 0, 7);
+    place("treeTR", 1, 7);
+    place("treeBL", 0, 8);
+    place("treeBR", 1, 8);
+
+    place("treeTL", 0, 9);
+    place("treeTR", 1, 9);
+    place("treeBL", 0, 10);
+    place("treeBR", 1, 10);
+
+    place("treeTL", 17, 1);
+    place("treeTR", 18, 1);
+    place("treeBL", 17, 2);
+    place("treeBR", 18, 2);
+
+    place("sign", 8, 6);
+    place("sign", 16, 6);
+    place("sign", 15, 10);
+
+    return tiles;
+  }
+
   const bm01 = {
     id: "BM-01",
     name: "Warden's Rise",
@@ -1056,7 +1140,8 @@
     size: { w: 320, h: 192 },
     spawns: {
       default: { x: 24, y: 128 },
-      west: { x: 24, y: 128 }
+      west: { x: 24, y: 128 },
+      north: { x: 154, y: 40 }
     },
     layers: {
       ground: buildHv06Ground(),
@@ -1076,7 +1161,8 @@
       northSeal: { x: 128, y: 16, w: 64, h: 16 }
     },
     transitions: [
-      { rect: rect(-2, 112, 16, 32), to: "HV-05", spawn: "east" }
+      { rect: rect(-2, 112, 16, 32), to: "HV-05", spawn: "east" },
+      { rect: rect(136, 0, 48, 8), to: "HV-07", spawn: "south" }
     ],
     enemySpawns: [
       {
@@ -1113,6 +1199,56 @@
     ]
   };
 
+  const hv07 = {
+    id: "HV-07",
+    name: "Shepherd's Rest",
+    region: "Highroad Vale",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 154, y: 160 },
+      south: { x: 154, y: 160 }
+    },
+    layers: {
+      ground: buildHv07Ground(),
+      mid: buildHv07Mid(),
+      fore: []
+    },
+    props: {
+      npc: { x: 56, y: 126, w: 16, h: 16 },
+      landmark: { x: 192, y: 84, w: 32, h: 30 },
+      southThreshold: { x: 136, y: 160, w: 48, h: 16 },
+      northThreshold: { x: 136, y: 0, w: 48, h: 24 },
+      eastMarker: { x: 256, y: 96, w: 16, h: 16 },
+      southeastMarker: { x: 240, y: 160, w: 16, h: 16 }
+    },
+    transitions: [
+      { rect: rect(136, 184, 48, 8), to: "HV-06", spawn: "north" }
+    ],
+    enemySpawns: [
+      {
+        type: "hound",
+        x: 232,
+        y: 142,
+        min: 208,
+        max: 266,
+        axis: "x",
+        dir: "left",
+        speed: 18,
+        hp: 2
+      }
+    ],
+    baseSolids: [
+      rect(0, 80, 144, 16),
+      rect(176, 80, 144, 16),
+      rect(32, 118, 48, 26),
+      rect(192, 84, 32, 28),
+      rect(80, 106, 16, 10),
+      rect(256, 138, 32, 10),
+      rect(0, 112, 32, 48),
+      rect(272, 16, 32, 32)
+    ]
+  };
+
   window.ElderfieldBenchmarkScreen = bm01;
   window.ElderfieldBenchmarkScreens = {
     [bm01.id]: bm01,
@@ -1122,6 +1258,7 @@
     [hv03.id]: hv03,
     [hv04.id]: hv04,
     [hv05.id]: hv05,
-    [hv06.id]: hv06
+    [hv06.id]: hv06,
+    [hv07.id]: hv07
   };
 })();
