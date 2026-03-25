@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.6-hv07";
+const BUILD_VERSION = "v0.3.7-hv10";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -126,7 +126,11 @@ function createDefaultSaveData() {
       waysideUpperRightLit: false,
       waysideLowerLeftLit: false,
       waysideLowerRightLit: false,
-      waysideEchoResolved: false
+      waysideEchoResolved: false,
+      greyfenDescentLeftLit: false,
+      greyfenDescentRightLit: false,
+      greyfenDescentBriarCleared: false,
+      greyfenDescentOpen: false
     },
     rewards: {
       watchCacheCollected: false,
@@ -134,7 +138,8 @@ function createDefaultSaveData() {
       highroadSupplyCollected: false,
       watchersCacheCollected: false,
       watchgateWallCacheCollected: false,
-      waysideTabletRead: false
+      waysideTabletRead: false,
+      greyfenNicheCollected: false
     },
     npcPhases: {
       talan: "waiting"
@@ -233,6 +238,12 @@ function syncDerivedProgress() {
     state.quest.waysideUpperRightLit &&
     state.quest.waysideLowerLeftLit &&
     state.quest.waysideLowerRightLit
+  );
+
+  state.quest.greyfenDescentOpen = Boolean(
+    state.quest.greyfenDescentLeftLit &&
+    state.quest.greyfenDescentRightLit &&
+    state.quest.greyfenDescentBriarCleared
   );
 
   if (state.rewards.watchCacheCollected) {
@@ -416,8 +427,20 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "HV-10") {
+    if (!state.quest.greyfenDescentBriarCleared) {
+      return "Burn the corruption-thorn on the descent switchback so the road can begin to sag out of the uplands and toward Greyfen.";
+    }
+    if (!state.quest.greyfenDescentLeftLit || !state.quest.greyfenDescentRightLit) {
+      return "Light both descent braziers so the Greyfen road feels consecrated and safe enough to follow downward.";
+    }
+    if (!state.rewards.greyfenNicheCollected) {
+      return "Sweep the east-wall niche chest before leaving the last dry stone above Greyfen behind.";
+    }
+    return "Greyfen Descent should now feel like the true downward turn out of Highroad shelter and into lowland memory.";
+  }
   if (state.currentScreen === "HV-07") {
-    return "Shepherd's Rest should read as the first true upland hub: shelter, standing stone, and three future road branches gathered into one safe-feeling place.";
+    return "Shepherd's Rest should read as the first true upland hub: shelter, standing stone, one live Greyfen branch, and two future roads held in reserve.";
   }
   if (state.currentScreen === "HV-06") {
     if (!state.quest.waysideEchoResolved) {
@@ -628,6 +651,15 @@ function drawBriar() {
       }
     }
   }
+
+  if (state.currentScreen === "HV-10") {
+    if (!state.quest.greyfenDescentBriarCleared && screen.props.descentBriar) {
+      const { x, y, w } = screen.props.descentBriar;
+      for (let offset = 0; offset < w; offset += atlas.tileSize) {
+        atlas.drawSprite(ctx, "briar", x + offset, y);
+      }
+    }
+  }
 }
 
 function drawCache() {
@@ -655,6 +687,11 @@ function drawCache() {
   if (screen.props.wallCache) {
     const cache = screen.props.wallCache;
     atlas.drawSprite(ctx, state.rewards.watchgateWallCacheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
+  }
+
+  if (screen.props.nicheCache) {
+    const cache = screen.props.nicheCache;
+    atlas.drawSprite(ctx, state.rewards.greyfenNicheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
   }
 
   if (screen.props.ledgeCache) {
@@ -802,6 +839,10 @@ function drawDebugOverlay() {
     lineA = "hub:shepherd's rest npc:yselle";
     lineB = "paths:north east southeast";
   }
+  if (state.currentScreen === "HV-10") {
+    lineA = `left:${state.quest.greyfenDescentLeftLit} right:${state.quest.greyfenDescentRightLit}`;
+    lineB = `thorn:${state.quest.greyfenDescentBriarCleared} open:${state.quest.greyfenDescentOpen}`;
+  }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
   drawPixelText(lineB, 14, 64);
@@ -884,6 +925,14 @@ function getSolids() {
   }
   if (state.currentScreen === "HV-06" && !state.quest.waysideEchoResolved && screen.props.northSeal) {
     solids.push({ ...screen.props.northSeal });
+  }
+  if (state.currentScreen === "HV-10") {
+    if (!state.quest.greyfenDescentBriarCleared && screen.props.descentBriar) {
+      solids.push({ ...screen.props.descentBriar });
+    }
+    if (!state.quest.greyfenDescentOpen && screen.props.southSeal) {
+      solids.push({ ...screen.props.southSeal });
+    }
   }
   return solids;
 }
@@ -1373,7 +1422,100 @@ function getInteractionTargets() {
     targets.push({
       rect: screen.props.southeastMarker,
       label: "Inspect southeast branch",
-      onInteract: () => showMessage("Southeast Branch", "The lower branch tilts toward Greyfen. It should feel present in the junction now, even before the descent becomes the active production path.")
+      onInteract: () => showMessage("Southeast Branch", "The lower branch now leads into Greyfen Descent. Shepherd's Rest finally hands the main route down into the marsh approach instead of only promising it.")
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "HV-10") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read descent stone",
+      onInteract: () => showMessage("Descent Stone", "Here the Highroad stops feeling lofty and begins to bow toward the drowned lowlands. The old marker was meant to steady travelers before the mist took the horizon from them.")
+    });
+
+    const makeDescentBrazier = (rect, questKey, title) => ({
+      rect,
+      label: state.quest[questKey] ? `Inspect ${title.toLowerCase()}` : `Light ${title.toLowerCase()}`,
+      onInteract: () => {
+        if (state.quest[questKey]) {
+          showMessage(title, `${title} already burns with Lantern fire. The descent keeps its warning light alive.`);
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The descent brazier waits for sacred flame before the road can be trusted further.");
+          return;
+        }
+        state.quest[questKey] = true;
+        commitProgress(`Route saved: ${title} lit`);
+        if (state.quest.greyfenDescentOpen) {
+          showMessage(title, "The last warning light answers and the Greyfen road feels safe enough to claim. The slope below is still ominous, but no longer unreadable.");
+          return;
+        }
+        showMessage(title, `${title} catches and holds. The descent is becoming legible as a real route, not a void.`);
+      }
+    });
+
+    targets.push(makeDescentBrazier(screen.props.leftBrazier, "greyfenDescentLeftLit", "Left Descent Brazier"));
+    targets.push(makeDescentBrazier(screen.props.rightBrazier, "greyfenDescentRightLit", "Right Descent Brazier"));
+
+    targets.push({
+      rect: screen.props.descentBriar,
+      label: state.quest.greyfenDescentBriarCleared ? "Inspect cleared switchback" : "Burn switchback thorn",
+      onInteract: () => {
+        if (state.quest.greyfenDescentBriarCleared) {
+          showMessage("Switchback Thorn", "The corruption-thorn is gone. The road can finally sag toward Greyfen instead of dying on the stone.");
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The switchback is still choked by corruption-thorn.");
+          return;
+        }
+        state.quest.greyfenDescentBriarCleared = true;
+        commitProgress("Route saved: Greyfen switchback cleared");
+        if (state.quest.greyfenDescentOpen) {
+          showMessage("Switchback Thorn", "The thorn burns away and the descent opens fully. The last dry turn of Highroad now gives way to Greyfen below.");
+          return;
+        }
+        showMessage("Switchback Thorn", "The thorn blackens and falls, revealing the east wall niche and the safer line of the descent.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.nicheCache,
+      label: state.rewards.greyfenNicheCollected ? "Inspect niche chest" : "Open niche chest",
+      onInteract: () => {
+        if (!state.quest.greyfenDescentBriarCleared) {
+          showMessage("Niche Chest", "You can spot the chest tucked into the east wall, but the switchback thorn still owns the approach.");
+          return;
+        }
+        if (!state.rewards.greyfenNicheCollected) {
+          state.rewards.greyfenNicheCollected = true;
+          commitProgress("Reward saved: Greyfen niche chest collected");
+          showMessage("Niche Chest", "Inside rests waxed cord and a marsh-wrapped charm. It is a small find, but the east pocket helps the descent feel authored instead of merely functional.");
+          return;
+        }
+        showMessage("Niche Chest", "The niche chest is empty now, but the east wall pocket still reads as a deliberate roadside hold.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: "Look back to Shepherd's Rest",
+      onInteract: () => showMessage("Upper Road", "Shepherd's Rest is still close enough to feel warm behind you, which makes the drop toward Greyfen feel sharper and more deliberate.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: state.quest.greyfenDescentOpen ? "Look down to Greyfen" : "Descent blocked",
+      onInteract: () => {
+        if (!state.quest.greyfenDescentOpen) {
+          showMessage("Lower Descent", "The Greyfen road is not ready yet. Clear the switchback thorn and light both descent braziers before committing the turn downward.");
+          return;
+        }
+        showMessage("Lower Descent", "The stone road sags into wet earth and vanishes into fog. `GF-01 Marshfoot Entry` is the next main-route production screen.");
+      }
     });
 
     return targets;
@@ -1632,7 +1774,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus the first seven production Highroad screens, all assembled from the same atlas with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus the first eight production Highroad screens, all assembled from the same atlas with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -1642,7 +1784,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the Highroad chain now continues through seven live production screens under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the Highroad chain now continues through eight live production screens under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
