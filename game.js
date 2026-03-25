@@ -26,14 +26,14 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.2.1-benchmark";
+const BUILD_VERSION = "v0.2.2-benchmark";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
   red: "Bad Error"
 };
 
-const screens = {
+const screens = window.ElderfieldBenchmarkScreens || {
   [benchmarkScreen.id]: benchmarkScreen
 };
 
@@ -177,6 +177,7 @@ function createRuntimeState() {
     prompt: null,
     paused: false,
     debug: false,
+    transitionCooldown: 0,
     lastTime: 0,
     meta: {
       saveLoaded: false,
@@ -190,6 +191,10 @@ function createRuntimeState() {
 }
 
 const state = createRuntimeState();
+
+function activeScreen() {
+  return screens[state.currentScreen] || benchmarkScreen;
+}
 
 function storage() {
   try {
@@ -381,6 +386,9 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "BM-02") {
+    return "BM-02 is the replication test. Walk the screen and judge whether the landmark, road, tree massing, and cliff rhythm still feel unmistakably Elderfield.";
+  }
   if (!state.quest.landmarkRead) {
     return "Climb the stairs and read the Warden Stone. The benchmark screen is built to pull your eye toward it.";
   }
@@ -460,7 +468,15 @@ function loadScreen(id, spawn = "default", options = {}) {
   state.enemies = spawnEnemies(screen);
   state.player.x = point.x;
   state.player.y = point.y;
-  state.player.dir = spawn === "terrace" ? "down" : "up";
+  const facingBySpawn = {
+    south: "up",
+    north: "down",
+    east: "left",
+    west: "right",
+    terrace: "down"
+  };
+  state.player.dir = facingBySpawn[spawn] || "up";
+  state.transitionCooldown = 0.25;
   updateCheckpoint(id, spawn);
   updateHud();
 
@@ -476,20 +492,25 @@ function drawLayer(layer) {
 }
 
 function drawBriar() {
-  if (state.quest.briarCleared) return;
-  const { x, y, w } = benchmarkScreen.props.briar;
+  const screen = activeScreen();
+  if (state.currentScreen !== "BM-01" || state.quest.briarCleared || !screen.props.briar) return;
+  const { x, y, w } = screen.props.briar;
   for (let offset = 0; offset < w; offset += atlas.tileSize) {
     atlas.drawSprite(ctx, "briar", x + offset, y);
   }
 }
 
 function drawCache() {
-  const cache = benchmarkScreen.props.cache;
+  const screen = activeScreen();
+  if (!screen.props.cache) return;
+  const cache = screen.props.cache;
   atlas.drawSprite(ctx, state.rewards.watchCacheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
 }
 
 function drawNpc() {
-  const npc = benchmarkScreen.props.npc;
+  const screen = activeScreen();
+  if (!screen.props.npc) return;
+  const npc = screen.props.npc;
   atlas.drawSprite(ctx, "npcCaretaker", npc.x, npc.y);
 }
 
@@ -535,12 +556,17 @@ function drawPlayer() {
 }
 
 function drawRuneGlow() {
-  if (!state.quest.landmarkRead) return;
+  const screen = activeScreen();
+  if (!screen.props.landmark) return;
+  if (state.currentScreen === "BM-01" && !state.quest.landmarkRead) return;
+  const { x, y, w } = screen.props.landmark;
+  const centerX = x + Math.floor(w / 2);
+  const topY = y + 14;
   ctx.save();
   ctx.fillStyle = atlas.palette.rune;
-  ctx.fillRect(222, 20, 2, 5);
-  ctx.fillRect(225, 24, 2, 2);
-  ctx.fillRect(229, 20, 2, 5);
+  ctx.fillRect(centerX - 7, topY, 2, 5);
+  ctx.fillRect(centerX - 1, topY + 4, 2, 2);
+  ctx.fillRect(centerX + 5, topY, 2, 5);
   ctx.restore();
 }
 
@@ -616,9 +642,10 @@ function drawPrompt() {
 }
 
 function drawScene() {
+  const screen = activeScreen();
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
-  drawLayer(benchmarkScreen.layers.ground);
-  drawLayer(benchmarkScreen.layers.mid);
+  drawLayer(screen.layers.ground);
+  drawLayer(screen.layers.mid);
   drawBriar();
   drawCache();
   drawRuneGlow();
@@ -630,16 +657,17 @@ function drawScene() {
 
   drawPlayer();
   drawHearts();
-  drawPixelText(benchmarkScreen.name, WIDTH - 12, 16, "#efe0a7", "right");
+  drawPixelText(screen.name, WIDTH - 12, 16, "#efe0a7", "right");
   drawPrompt();
   drawDebugOverlay();
   drawPauseOverlay();
 }
 
 function getSolids() {
-  const solids = benchmarkScreen.baseSolids.map((box) => ({ ...box }));
-  if (!state.quest.briarCleared) {
-    solids.push({ ...benchmarkScreen.props.briar });
+  const screen = activeScreen();
+  const solids = screen.baseSolids.map((box) => ({ ...box }));
+  if (state.currentScreen === "BM-01" && !state.quest.briarCleared && screen.props.briar) {
+    solids.push({ ...screen.props.briar });
   }
   return solids;
 }
@@ -735,10 +763,45 @@ function interactionSearchBox() {
 }
 
 function getInteractionTargets() {
+  const screen = activeScreen();
   const targets = [];
 
+  if (state.currentScreen === "BM-02") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read pilgrim marker",
+      onInteract: () => showMessage("Pilgrim Marker", "BM-02 exists for one purpose: to prove the visual law survives translation. The road rises sideways here instead of straight north, but the screen should still read at a glance.")
+    });
+
+    targets.push({
+      rect: screen.props.npc,
+      label: "Talk to Elira",
+      onInteract: () => showMessage("Elira", "Warden's Rise taught the law. Pilgrim's Cut tests it. If this screen feels like the same world without copying the first one outright, the benchmark is working.")
+    });
+
+    targets.push({
+      rect: screen.props.westWaypost,
+      label: "Read west waypost",
+      onInteract: () => showMessage("West Waypost", "Warden's Rise lies west. This return line exists so BM-02 stays a replication test, not a region breakout.")
+    });
+
+    targets.push({
+      rect: screen.props.terraceMarker,
+      label: "Inspect ascent marker",
+      onInteract: () => showMessage("Ascent Marker", "The stairs pull the eye to the side terrace, proving the same cliff language can redirect composition without breaking readability.")
+    });
+
+    targets.push({
+      rect: screen.props.eastWaypost,
+      label: "Read east marker",
+      onInteract: () => showMessage("East Marker", "No farther world is open here. BM-02 stops at the silhouette test so the benchmark stays disciplined.")
+    });
+
+    return targets;
+  }
+
   targets.push({
-    rect: benchmarkScreen.props.landmark,
+    rect: screen.props.landmark,
     label: "Read Warden Stone",
     onInteract: () => {
       if (!state.quest.landmarkRead) {
@@ -752,7 +815,7 @@ function getInteractionTargets() {
   });
 
   targets.push({
-    rect: benchmarkScreen.props.npc,
+    rect: screen.props.npc,
     label: "Talk to Watchkeeper Talan",
     onInteract: () => {
       if (!state.quest.caretakerMet) {
@@ -777,7 +840,7 @@ function getInteractionTargets() {
   });
 
   targets.push({
-    rect: benchmarkScreen.props.briar,
+    rect: screen.props.briar,
     label: state.quest.briarCleared ? "Briars cleared" : "Burn thorn choke",
     onInteract: () => {
       if (state.quest.briarCleared) {
@@ -795,7 +858,7 @@ function getInteractionTargets() {
   });
 
   targets.push({
-    rect: benchmarkScreen.props.cache,
+    rect: screen.props.cache,
     label: state.rewards.watchCacheCollected ? "Inspect watch-cache" : "Open watch-cache",
     onInteract: () => {
       if (!state.quest.briarCleared) {
@@ -813,15 +876,15 @@ function getInteractionTargets() {
   });
 
   targets.push({
-    rect: benchmarkScreen.props.southWaypost,
+    rect: screen.props.southWaypost,
     label: "Read south waypost",
     onInteract: () => showMessage("South Waypost", "Rowan Hollow lies beyond this road. The benchmark ends here on purpose so composition can be judged before the world grows again.")
   });
 
   targets.push({
-    rect: benchmarkScreen.props.eastWaypost,
+    rect: screen.props.eastWaypost,
     label: "Read east waypost",
-    onInteract: () => showMessage("East Waypost", "This east cut is only a composition exit for now. Future screens should inherit this road language rather than inventing a new one.")
+    onInteract: () => showMessage("East Waypost", "This east cut now leads to BM-02, the replication test screen. The point is to prove the benchmark can translate, not to start a region.")
   });
 
   return targets;
@@ -837,6 +900,19 @@ function getNearestInteraction() {
   return available[0];
 }
 
+function handleTransitions() {
+  if (state.transitionCooldown > 0) return;
+
+  const screen = activeScreen();
+  const transitions = screen.transitions || [];
+  for (const transition of transitions) {
+    if (overlaps(state.player, transition.rect)) {
+      loadScreen(transition.to, transition.spawn || "default");
+      return;
+    }
+  }
+}
+
 function handleInteraction() {
   const target = getNearestInteraction();
   if (target) {
@@ -850,6 +926,8 @@ function handleInteraction() {
 }
 
 function update(dt) {
+  if (state.transitionCooldown > 0) state.transitionCooldown -= dt;
+
   if (justPressed("Backquote")) {
     state.debug = !state.debug;
   }
@@ -875,6 +953,7 @@ function update(dt) {
   updateEnemies(dt);
   attackEnemies();
   handleInteraction();
+  handleTransitions();
 }
 
 function loop(timestamp) {
@@ -894,7 +973,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "This pass resets Elderfield's visual pipeline. The active build is one handcrafted overworld screen assembled from an atlas, with movement, combat, save/load, pause, debug, and a short progression loop still intact.");
+  showMessage("Benchmark Active", "This pass resets Elderfield's visual pipeline. The active build now contains BM-01 plus one adjacent replication screen, both assembled from the same atlas with movement, combat, save/load, pause, debug, and the benchmark progression loop intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -904,7 +983,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Benchmark progress loaded. Save/load, progression, and debug remain active while the art direction resets around this single screen.");
+    showMessage("Journey Restored", "Benchmark progress loaded. Save/load, progression, and debug remain active while the art direction stays focused on BM-01 and its one-screen replication test.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
@@ -935,6 +1014,7 @@ window.ElderfieldDebug = {
   startFreshJourney,
   buildSaveData,
   loadScreen: (id, spawn = "default") => loadScreen(id, spawn, { skipSave: true }),
+  activeScreen,
   toggleDebug() {
     state.debug = !state.debug;
     return state.debug;
