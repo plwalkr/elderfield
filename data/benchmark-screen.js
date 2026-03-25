@@ -489,6 +489,148 @@
     return tiles;
   }
 
+  function buildHv05Ground() {
+    const { tiles, place } = fillGrass();
+    const roadTiles = [
+      [9, 11], [10, 11],
+      [8, 10], [9, 10], [10, 10], [11, 10],
+      [8, 9], [9, 9], [10, 9], [11, 9],
+      [8, 8], [9, 8], [10, 8], [11, 8],
+      [4, 6], [5, 6], [6, 6], [7, 6], [8, 6], [9, 6], [10, 6], [11, 6], [12, 6], [13, 6], [14, 6], [15, 6], [16, 6], [17, 6], [18, 6],
+      [3, 5], [4, 5], [5, 5], [6, 5], [7, 5],
+      [13, 5], [14, 5], [15, 5], [16, 5], [17, 5], [18, 5]
+    ];
+
+    for (const [tx, ty] of roadTiles) {
+      place((tx + ty) % 2 === 0 ? "roadA" : "roadB", tx, ty);
+    }
+
+    return tiles;
+  }
+
+  function buildHv05Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 19; tx += 1) {
+      if (tx === 9 || tx === 10) {
+        place("stairs", tx, 7);
+      } else if (tx === 0) {
+        place("cliffLeft", tx, 7);
+      } else if (tx === 19) {
+        place("cliffRight", tx, 7);
+      } else {
+        place("cliffFace", tx, 7);
+      }
+    }
+
+    place("ruinL", 1, 2);
+    place("landmarkTopL", 2, 1);
+    place("landmarkTopR", 3, 1);
+    place("landmarkBaseL", 2, 2);
+    place("landmarkBaseR", 3, 2);
+    place("ruinR", 4, 2);
+    place("ruinL", 1, 4);
+
+    place("ruinL", 14, 2);
+    place("landmarkTopL", 15, 1);
+    place("landmarkTopR", 16, 1);
+    place("landmarkBaseL", 15, 2);
+    place("landmarkBaseR", 16, 2);
+    place("ruinR", 17, 2);
+    place("ruinR", 18, 4);
+
+    place("ruinL", 0, 5);
+    place("ruinR", 18, 5);
+
+    place("treeTL", 0, 9);
+    place("treeTR", 1, 9);
+    place("treeBL", 0, 10);
+    place("treeBR", 1, 10);
+
+    place("treeTL", 17, 9);
+    place("treeTR", 18, 9);
+    place("treeBL", 17, 10);
+    place("treeBR", 18, 10);
+
+    place("sign", 9, 5);
+    place("sign", 17, 5);
+
+    return tiles;
+  }
+
+  function buildHv06Ground() {
+    const { tiles, place } = fillGrass();
+    const roadTiles = [
+      [0, 8], [1, 8], [2, 8], [3, 8], [4, 8], [5, 8], [6, 8],
+      [2, 9], [3, 9], [4, 9], [5, 9], [6, 9],
+      [7, 7], [8, 7], [9, 7], [10, 7], [11, 7], [12, 7],
+      [8, 6], [9, 6], [10, 6], [11, 6],
+      [8, 4], [9, 4], [10, 4], [11, 4],
+      [8, 3], [9, 3], [10, 3], [11, 3],
+      [9, 2], [10, 2]
+    ];
+
+    for (const [tx, ty] of roadTiles) {
+      place((tx + ty) % 2 === 0 ? "roadA" : "roadB", tx, ty);
+    }
+
+    return tiles;
+  }
+
+  function buildHv06Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 19; tx += 1) {
+      if (tx === 9 || tx === 10) {
+        place("stairs", tx, 5);
+      } else if (tx === 0) {
+        place("cliffLeft", tx, 5);
+      } else if (tx === 19) {
+        place("cliffRight", tx, 5);
+      } else {
+        place("cliffFace", tx, 5);
+      }
+    }
+
+    place("ruinL", 8, 1);
+    place("landmarkTopL", 9, 0);
+    place("landmarkTopR", 10, 0);
+    place("landmarkBaseL", 9, 1);
+    place("landmarkBaseR", 10, 1);
+    place("ruinR", 11, 1);
+
+    place("sign", 9, 2);
+    place("sign", 7, 4);
+    place("sign", 12, 4);
+    place("sign", 7, 7);
+    place("sign", 12, 7);
+
+    place("ruinL", 4, 7);
+    place("ruinR", 5, 7);
+    place("ruinL", 14, 7);
+    place("ruinR", 15, 7);
+
+    place("treeTL", 0, 9);
+    place("treeTR", 1, 9);
+    place("treeBL", 0, 10);
+    place("treeBR", 1, 10);
+
+    place("treeTL", 17, 9);
+    place("treeTR", 18, 9);
+    place("treeBL", 17, 10);
+    place("treeBR", 18, 10);
+
+    return tiles;
+  }
+
   const bm01 = {
     id: "BM-01",
     name: "Warden's Rise",
@@ -788,7 +930,8 @@
     size: { w: 320, h: 192 },
     spawns: {
       default: { x: 154, y: 160 },
-      south: { x: 154, y: 160 }
+      south: { x: 154, y: 160 },
+      north: { x: 154, y: 40 }
     },
     layers: {
       ground: buildHv04Ground(),
@@ -806,7 +949,8 @@
       bannerRack: { x: 240, y: 126, w: 16, h: 16 }
     },
     transitions: [
-      { rect: rect(136, 184, 48, 8), to: "HV-03", spawn: "north" }
+      { rect: rect(136, 184, 48, 8), to: "HV-03", spawn: "north" },
+      { rect: rect(136, 0, 48, 8), to: "HV-05", spawn: "south" }
     ],
     enemySpawns: [
       {
@@ -844,6 +988,131 @@
     ]
   };
 
+  const hv05 = {
+    id: "HV-05",
+    name: "Watchgate Upper Wall",
+    region: "Highroad Vale",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 154, y: 160 },
+      south: { x: 154, y: 160 },
+      east: { x: 280, y: 88 }
+    },
+    layers: {
+      ground: buildHv05Ground(),
+      mid: buildHv05Mid(),
+      fore: []
+    },
+    props: {
+      wallMarker: { x: 144, y: 80, w: 16, h: 16 },
+      wallCache: { x: 48, y: 80, w: 16, h: 16 },
+      southThreshold: { x: 136, y: 160, w: 48, h: 16 },
+      eastDrop: { x: 272, y: 80, w: 32, h: 24 }
+    },
+    transitions: [
+      { rect: rect(136, 184, 48, 8), to: "HV-04", spawn: "north" },
+      { rect: rect(304, 72, 16, 32), to: "HV-06", spawn: "west" }
+    ],
+    enemySpawns: [
+      {
+        type: "hound",
+        x: 90,
+        y: 92,
+        min: 68,
+        max: 124,
+        axis: "x",
+        dir: "left",
+        speed: 20,
+        hp: 2
+      },
+      {
+        type: "hound",
+        x: 214,
+        y: 92,
+        min: 186,
+        max: 248,
+        axis: "x",
+        dir: "left",
+        speed: 22,
+        hp: 2
+      }
+    ],
+    baseSolids: [
+      rect(0, 112, 144, 16),
+      rect(176, 112, 144, 16),
+      rect(32, 20, 48, 28),
+      rect(240, 20, 48, 28),
+      rect(0, 74, 16, 10),
+      rect(288, 74, 16, 10),
+      rect(0, 144, 32, 32),
+      rect(272, 144, 32, 32)
+    ]
+  };
+
+  const hv06 = {
+    id: "HV-06",
+    name: "Bell of the Wayside",
+    region: "Highroad Vale",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 24, y: 128 },
+      west: { x: 24, y: 128 }
+    },
+    layers: {
+      ground: buildHv06Ground(),
+      mid: buildHv06Mid(),
+      fore: []
+    },
+    props: {
+      landmark: { x: 144, y: 4, w: 32, h: 30 },
+      bellShrine: { x: 144, y: 4, w: 32, h: 30 },
+      altarTablet: { x: 144, y: 32, w: 16, h: 16 },
+      upperLeftBrazier: { x: 112, y: 64, w: 16, h: 16 },
+      upperRightBrazier: { x: 192, y: 64, w: 16, h: 16 },
+      lowerLeftBrazier: { x: 112, y: 112, w: 16, h: 16 },
+      lowerRightBrazier: { x: 192, y: 112, w: 16, h: 16 },
+      westThreshold: { x: 0, y: 112, w: 16, h: 32 },
+      northThreshold: { x: 136, y: 0, w: 48, h: 24 },
+      northSeal: { x: 128, y: 16, w: 64, h: 16 }
+    },
+    transitions: [
+      { rect: rect(-2, 112, 16, 32), to: "HV-05", spawn: "east" }
+    ],
+    enemySpawns: [
+      {
+        type: "hound",
+        x: 78,
+        y: 138,
+        min: 44,
+        max: 112,
+        axis: "x",
+        dir: "left",
+        speed: 20,
+        hp: 2
+      },
+      {
+        type: "hound",
+        x: 226,
+        y: 126,
+        min: 190,
+        max: 252,
+        axis: "x",
+        dir: "left",
+        speed: 22,
+        hp: 2
+      }
+    ],
+    baseSolids: [
+      rect(0, 80, 144, 16),
+      rect(176, 80, 144, 16),
+      rect(144, 4, 32, 28),
+      rect(64, 122, 32, 10),
+      rect(224, 122, 32, 10),
+      rect(0, 144, 32, 32),
+      rect(272, 144, 32, 32)
+    ]
+  };
+
   window.ElderfieldBenchmarkScreen = bm01;
   window.ElderfieldBenchmarkScreens = {
     [bm01.id]: bm01,
@@ -851,6 +1120,8 @@
     [hv01.id]: hv01,
     [hv02.id]: hv02,
     [hv03.id]: hv03,
-    [hv04.id]: hv04
+    [hv04.id]: hv04,
+    [hv05.id]: hv05,
+    [hv06.id]: hv06
   };
 })();
