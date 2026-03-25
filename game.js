@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.5-hv06";
+const BUILD_VERSION = "v0.3.6-hv07";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -416,6 +416,9 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "HV-07") {
+    return "Shepherd's Rest should read as the first true upland hub: shelter, standing stone, and three future road branches gathered into one safe-feeling place.";
+  }
   if (state.currentScreen === "HV-06") {
     if (!state.quest.waysideEchoResolved) {
       return "Light all four wayside braziers so the bell shrine answers the road and proves this place is more than a passage screen.";
@@ -794,6 +797,10 @@ function drawDebugOverlay() {
     ].filter(Boolean).length;
     lineA = `fires:${firesLit}/4 echo:${state.quest.waysideEchoResolved}`;
     lineB = `tablet:${state.rewards.waysideTabletRead} path:wayside`;
+  }
+  if (state.currentScreen === "HV-07") {
+    lineA = "hub:shepherd's rest npc:yselle";
+    lineB = "paths:north east southeast";
   }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
@@ -1332,6 +1339,46 @@ function getInteractionTargets() {
     return targets;
   }
 
+  if (state.currentScreen === "HV-07") {
+    targets.push({
+      rect: screen.props.npc,
+      label: "Talk to Yselle",
+      onInteract: () => showMessage("Yselle", "This is where the road remembers how to breathe. Traders, mourners, and shepherds still stop here even now, because the Highroad feels less alone once a fire is kept for the next traveler.")
+    });
+
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read rest stone",
+      onInteract: () => showMessage("Rest Stone", "The stone marks Shepherd's Rest as a place of keeping, not conquest. That shift matters: after Watchgate's defenses and the bell's testimony, the road finally offers shelter instead of command.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look south",
+      onInteract: () => showMessage("South Road", "The Bell of the Wayside and Watchgate lie back down the slope. The road behind you now carries a readable sequence of fortification, memory, and rest.")
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: "Look north",
+      onInteract: () => showMessage("North Road", "The northern rise leaves Shepherd's Rest and climbs toward harsher country. The next production screen can continue there without needing a new visual language.")
+    });
+
+    targets.push({
+      rect: screen.props.eastMarker,
+      label: "Inspect east marker",
+      onInteract: () => showMessage("East Marker", "The east road bends toward the old toll line. Even unopened, it reads as one branch of a real crossroads rather than decorative space.")
+    });
+
+    targets.push({
+      rect: screen.props.southeastMarker,
+      label: "Inspect southeast branch",
+      onInteract: () => showMessage("Southeast Branch", "The lower branch tilts toward Greyfen. It should feel present in the junction now, even before the descent becomes the active production path.")
+    });
+
+    return targets;
+  }
+
   if (state.currentScreen === "BM-02") {
     targets.push({
       rect: screen.props.landmark,
@@ -1585,7 +1632,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus the first six production Highroad screens, all assembled from the same atlas with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus the first seven production Highroad screens, all assembled from the same atlas with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -1595,7 +1642,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the Highroad chain now continues through six live production screens under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the Highroad chain now continues through seven live production screens under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
