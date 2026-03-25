@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.2.3-benchmark";
+const BUILD_VERSION = "v0.3.2-hv03";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -115,11 +115,15 @@ function createDefaultSaveData() {
       landmarkRead: false,
       caretakerMet: false,
       briarCleared: false,
-      pilgrimBriarCleared: false
+      pilgrimBriarCleared: false,
+      highroadGateCleared: false,
+      watchersUpperBriarCleared: false
     },
     rewards: {
       watchCacheCollected: false,
-      pilgrimCacheCollected: false
+      pilgrimCacheCollected: false,
+      highroadSupplyCollected: false,
+      watchersCacheCollected: false
     },
     npcPhases: {
       talan: "waiting"
@@ -388,6 +392,27 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "HV-03") {
+    if (!state.quest.watchersUpperBriarCleared) {
+      return "Burn the thorn-choked wagon pile on the north ramp so the climb can finally reveal the Watchgate road ahead.";
+    }
+    return "Watcher's Steps Upper should now sell the wider Highroad promise: Greyfen below, Watchgate ahead, and a future east-hook pocket worth remembering.";
+  }
+  if (state.currentScreen === "HV-02") {
+    if (!state.rewards.watchersCacheCollected) {
+      return "Climb the lower steps, then sweep the west herb alcove so the side pocket reads as part of the road instead of dead filler.";
+    }
+    return "Watcher's Steps Lower should now read as a stable continuation of the Highroad chain under the locked benchmark law.";
+  }
+  if (state.currentScreen === "HV-01") {
+    if (!state.quest.highroadGateCleared) {
+      return "Burn the thorn wall at the north road and reopen the first true Highroad gate.";
+    }
+    if (!state.rewards.highroadSupplyCollected) {
+      return "Sweep the east shoulder ruin for the tucked supply chest before pressing farther into the uplands.";
+    }
+    return "The Highroad Spur stands open. This screen should now feel like real Elderfield content built under the locked benchmark law.";
+  }
   if (state.currentScreen === "BM-02") {
     if (!state.quest.pilgrimBriarCleared) {
       return "Pilgrim's Cut should feel authored in one glance: landmark above, shelter below, and a thorned cache nook tucked off the road.";
@@ -395,7 +420,7 @@ function objectiveText() {
     if (!state.rewards.pilgrimCacheCollected) {
       return "The briars are gone. Claim the pilgrim cache and judge whether BM-02 now carries the same optional-pocket strength as BM-01.";
     }
-    return "BM-02 should now prove the benchmark law can translate cleanly without feeling like a temporary test screen.";
+    return "BM-02 should now carry the law cleanly enough to hand off into the real Highroad path on its eastern shoulder.";
   }
   if (!state.quest.landmarkRead) {
     return "Climb the stairs and read the Warden Stone. The benchmark screen is built to pull your eye toward it.";
@@ -510,8 +535,26 @@ function drawBriar() {
     return;
   }
 
-  if (state.currentScreen !== "BM-02" || state.quest.pilgrimBriarCleared || !screen.props.pilgrimBriar) return;
-  const { x, y, w } = screen.props.pilgrimBriar;
+  if (state.currentScreen === "BM-02") {
+    if (state.quest.pilgrimBriarCleared || !screen.props.pilgrimBriar) return;
+    const { x, y, w } = screen.props.pilgrimBriar;
+    for (let offset = 0; offset < w; offset += atlas.tileSize) {
+      atlas.drawSprite(ctx, "briar", x + offset, y);
+    }
+    return;
+  }
+
+  if (state.currentScreen === "HV-01") {
+    if (state.quest.highroadGateCleared || !screen.props.highroadBriar) return;
+    const { x, y, w } = screen.props.highroadBriar;
+    for (let offset = 0; offset < w; offset += atlas.tileSize) {
+      atlas.drawSprite(ctx, "briar", x + offset, y);
+    }
+    return;
+  }
+
+  if (state.currentScreen !== "HV-03" || state.quest.watchersUpperBriarCleared || !screen.props.upperBriar) return;
+  const { x, y, w } = screen.props.upperBriar;
   for (let offset = 0; offset < w; offset += atlas.tileSize) {
     atlas.drawSprite(ctx, "briar", x + offset, y);
   }
@@ -527,6 +570,21 @@ function drawCache() {
   if (screen.props.pilgrimCache) {
     const cache = screen.props.pilgrimCache;
     atlas.drawSprite(ctx, state.rewards.pilgrimCacheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
+  }
+
+  if (screen.props.spurCache) {
+    const cache = screen.props.spurCache;
+    atlas.drawSprite(ctx, state.rewards.highroadSupplyCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
+  }
+
+  if (screen.props.stepsCache) {
+    const cache = screen.props.stepsCache;
+    atlas.drawSprite(ctx, state.rewards.watchersCacheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
+  }
+
+  if (screen.props.ledgeCache) {
+    const cache = screen.props.ledgeCache;
+    atlas.drawSprite(ctx, "chestClosed", cache.x, cache.y);
   }
 }
 
@@ -629,9 +687,27 @@ function drawDebugOverlay() {
   ctx.fillRect(8, 26, 170, 70);
   ctx.strokeStyle = "#d5ca8e";
   ctx.strokeRect(8.5, 26.5, 169, 69);
+  let lineA = `stone:${state.quest.landmarkRead} briar:${state.quest.briarCleared}`;
+  let lineB = `cache:${state.rewards.watchCacheCollected} npc:${state.npcPhases.talan}`;
+  if (state.currentScreen === "BM-02") {
+    lineA = `nook:${state.quest.pilgrimBriarCleared} cache:${state.rewards.pilgrimCacheCollected}`;
+    lineB = "law:benchmark handoff east";
+  }
+  if (state.currentScreen === "HV-01") {
+    lineA = `gate:${state.quest.highroadGateCleared} cache:${state.rewards.highroadSupplyCollected}`;
+    lineB = "path:highroad spur";
+  }
+  if (state.currentScreen === "HV-02") {
+    lineA = `cache:${state.rewards.watchersCacheCollected} route:steps`;
+    lineB = "path:watcher's steps";
+  }
+  if (state.currentScreen === "HV-03") {
+    lineA = `gate:${state.quest.watchersUpperBriarCleared} lookout:east`;
+    lineB = "path:watcher's upper";
+  }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
-  drawPixelText(`stone:${state.quest.landmarkRead} briar:${state.quest.briarCleared}`, 14, 52);
-  drawPixelText(`cache:${state.rewards.watchCacheCollected} npc:${state.npcPhases.talan}`, 14, 64);
+  drawPixelText(lineA, 14, 52);
+  drawPixelText(lineB, 14, 64);
   drawPixelText(`paused:${state.paused} prompt:${state.prompt ? "yes" : "no"}`, 14, 76);
   drawPixelText("` toggles debug", 14, 88, "#d5ca8e");
 
@@ -694,6 +770,12 @@ function getSolids() {
   }
   if (state.currentScreen === "BM-02" && !state.quest.pilgrimBriarCleared && screen.props.pilgrimBriar) {
     solids.push({ ...screen.props.pilgrimBriar });
+  }
+  if (state.currentScreen === "HV-01" && !state.quest.highroadGateCleared && screen.props.highroadBriar) {
+    solids.push({ ...screen.props.highroadBriar });
+  }
+  if (state.currentScreen === "HV-03" && !state.quest.watchersUpperBriarCleared && screen.props.upperBriar) {
+    solids.push({ ...screen.props.upperBriar });
   }
   return solids;
 }
@@ -761,7 +843,7 @@ function updateEnemies(dt) {
       if (state.player.hp <= 0) {
         state.player.hp = 3;
         loadScreen(state.currentScreen, "south", { skipSave: true });
-        showMessage("Fallen", "This benchmark keeps the failure loop simple: you stand back up at the south road so the screen read stays easy to test.");
+        showMessage("Fallen", "This slice keeps the failure loop simple: you stand back up at the south road so the screen stays easy to read and replay.");
         return;
       }
     }
@@ -791,6 +873,154 @@ function interactionSearchBox() {
 function getInteractionTargets() {
   const screen = activeScreen();
   const targets = [];
+
+  if (state.currentScreen === "HV-01") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read roadstone",
+      onInteract: () => showMessage("Roadstone", "The old Highroad stone still bears a Warden mark beneath the soot. Rowan Hollow was never truly outside the kingdom's sacred road network.")
+    });
+
+    targets.push({
+      rect: screen.props.highroadBriar,
+      label: state.quest.highroadGateCleared ? "Gate cleared" : "Burn road briars",
+      onInteract: () => {
+        if (state.quest.highroadGateCleared) {
+          showMessage("Highroad Gate", "The thorns are gone. The upland road now reads as a real continuation, not a promise cut short.");
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The Highroad spur is choked by the same black thorn that sealed other sacred routes.");
+          return;
+        }
+        state.quest.highroadGateCleared = true;
+        commitProgress("Route saved: Highroad spur opened");
+        showMessage("Highroad Gate", "Sacred fire burns the thorn wall back to the stones. The first true Highroad route opens ahead.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.spurCache,
+      label: state.rewards.highroadSupplyCollected ? "Inspect supply chest" : "Open supply chest",
+      onInteract: () => {
+        if (!state.rewards.highroadSupplyCollected) {
+          state.rewards.highroadSupplyCollected = true;
+          commitProgress("Reward saved: Highroad supply chest collected");
+          showMessage("Supply Chest", "Inside rests lamp oil, old road cord, and a weather-stiff satchel strap. The chest is small, but the shoulder nook earns its place by being clearly authored.");
+          return;
+        }
+        showMessage("Supply Chest", "The supply chest sits empty in the east shoulder niche, but the pocket still reads as a deliberate detour.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.southWaypost,
+      label: "Read south waypost",
+      onInteract: () => showMessage("South Waypost", "Rowan Hollow lies below the rise. Even here, the valley still feels close enough to return to.")
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: state.quest.highroadGateCleared ? "Look north" : "Road blocked",
+      onInteract: () => {
+        if (!state.quest.highroadGateCleared) {
+          showMessage("North Road", "The Highroad is still sealed by black thorn. Burn the choke and the climb will open again.");
+          return;
+        }
+        showMessage("North Road", "The old stones climb on toward Watcher's Steps. This is where the wider Highroad rebuild should continue next.");
+      }
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "HV-02") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read saint marker",
+      onInteract: () => showMessage("Saint Marker", "A saint of the old road lies half-broken in the turf, turned from shrine to milestone. The Steps still feel ceremonial even in ruin, which is exactly the memory this climb needs.")
+    });
+
+    targets.push({
+      rect: screen.props.stepsCache,
+      label: state.rewards.watchersCacheCollected ? "Inspect herb satchel" : "Open herb satchel",
+      onInteract: () => {
+        if (!state.rewards.watchersCacheCollected) {
+          state.rewards.watchersCacheCollected = true;
+          commitProgress("Reward saved: Watcher's herb satchel collected");
+          showMessage("Herb Satchel", "A dry satchel of vale herbs rests in the west alcove. The reward is modest, but the pocket proves the climb was authored, not just left over around the road.");
+          return;
+        }
+        showMessage("Herb Satchel", "The satchel is empty now, but the alcove still reads as a deliberate roadside pause.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look south",
+      onInteract: () => showMessage("South Road", "The gate below still points back toward Rowan Hollow. Even one screen higher, the valley remains part of the route's emotional logic.")
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: "Look north",
+      onInteract: () => showMessage("North Steps", "The old road narrows and rises again toward Watcher's Steps Upper. This chain now has enough stability to continue forward without falling back to benchmark-only space.")
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "HV-03") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read overlook stone",
+      onInteract: () => showMessage("Overlook Stone", "Mist from Greyfen hangs below the road while the climb bends toward Watchgate above. This is the first place the Highroad feels like a wounded kingdom spine instead of a local path.")
+    });
+
+    targets.push({
+      rect: screen.props.upperBriar,
+      label: state.quest.watchersUpperBriarCleared ? "Ramp cleared" : "Burn wagon choke",
+      onInteract: () => {
+        if (state.quest.watchersUpperBriarCleared) {
+          showMessage("North Ramp", "The wagon choke is gone. The upper road now points cleanly toward Watchgate.");
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The thorn-black wagon pile still seals the north ramp.");
+          return;
+        }
+        state.quest.watchersUpperBriarCleared = true;
+        commitProgress("Route saved: Watcher's Steps Upper ramp opened");
+        showMessage("North Ramp", "The Lantern burns the choke apart and the road opens toward the ruined gateworks above.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look south",
+      onInteract: () => showMessage("South Road", "From here the lower steps and the first Highroad gate fall into one remembered line. The chain is finally beginning to hold together.")
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: state.quest.watchersUpperBriarCleared ? "Look to Watchgate" : "Road blocked",
+      onInteract: () => {
+        if (!state.quest.watchersUpperBriarCleared) {
+          showMessage("North Road", "A thorn-choked wagon barricade still blocks the climb to Watchgate.");
+          return;
+        }
+        showMessage("North Road", "Watchgate's broken crown rises ahead. The next real Highroad screen belongs there, not back in benchmark space.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.eastLookout,
+      label: "Inspect east ledge",
+      onInteract: () => showMessage("East Ledge", "A narrow ledge drops away toward Greyfen. Something useful could be reached there later with the right pull across the gap, which is exactly the kind of remembered future pocket this road needs.")
+    });
+
+    return targets;
+  }
 
   if (state.currentScreen === "BM-02") {
     targets.push({
@@ -830,7 +1060,7 @@ function getInteractionTargets() {
     targets.push({
       rect: screen.props.eastWaypost,
       label: "Read east marker",
-      onInteract: () => showMessage("East Marker", "The eastern ledge broke away long ago. The road ends at the overlook on purpose, with the marker and broken stone holding the eye instead of an empty promise off-screen.")
+      onInteract: () => showMessage("East Marker", "The cut road picks up again beyond the broken shoulder. Follow it and the first true Highroad gate comes into view.")
     });
 
     targets.push({
@@ -1045,7 +1275,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "This pass resets Elderfield's visual pipeline. The active build now contains BM-01 plus one adjacent replication screen, both assembled from the same atlas with movement, combat, save/load, pause, debug, and the benchmark progression loop intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus the first three production Highroad screens, all assembled from the same atlas with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -1055,7 +1285,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Benchmark progress loaded. Save/load, progression, and debug remain active while the art direction stays focused on BM-01 and its one-screen replication test.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the Highroad chain now continues through three live production screens under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
