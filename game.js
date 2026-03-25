@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.2.2-benchmark";
+const BUILD_VERSION = "v0.2.3-benchmark";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -114,10 +114,12 @@ function createDefaultSaveData() {
     quest: {
       landmarkRead: false,
       caretakerMet: false,
-      briarCleared: false
+      briarCleared: false,
+      pilgrimBriarCleared: false
     },
     rewards: {
-      watchCacheCollected: false
+      watchCacheCollected: false,
+      pilgrimCacheCollected: false
     },
     npcPhases: {
       talan: "waiting"
@@ -387,7 +389,13 @@ function renderInventory() {
 
 function objectiveText() {
   if (state.currentScreen === "BM-02") {
-    return "BM-02 is the replication test. Walk the screen and judge whether the landmark, road, tree massing, and cliff rhythm still feel unmistakably Elderfield.";
+    if (!state.quest.pilgrimBriarCleared) {
+      return "Pilgrim's Cut should feel authored in one glance: landmark above, shelter below, and a thorned cache nook tucked off the road.";
+    }
+    if (!state.rewards.pilgrimCacheCollected) {
+      return "The briars are gone. Claim the pilgrim cache and judge whether BM-02 now carries the same optional-pocket strength as BM-01.";
+    }
+    return "BM-02 should now prove the benchmark law can translate cleanly without feeling like a temporary test screen.";
   }
   if (!state.quest.landmarkRead) {
     return "Climb the stairs and read the Warden Stone. The benchmark screen is built to pull your eye toward it.";
@@ -493,8 +501,17 @@ function drawLayer(layer) {
 
 function drawBriar() {
   const screen = activeScreen();
-  if (state.currentScreen !== "BM-01" || state.quest.briarCleared || !screen.props.briar) return;
-  const { x, y, w } = screen.props.briar;
+  if (state.currentScreen === "BM-01") {
+    if (state.quest.briarCleared || !screen.props.briar) return;
+    const { x, y, w } = screen.props.briar;
+    for (let offset = 0; offset < w; offset += atlas.tileSize) {
+      atlas.drawSprite(ctx, "briar", x + offset, y);
+    }
+    return;
+  }
+
+  if (state.currentScreen !== "BM-02" || state.quest.pilgrimBriarCleared || !screen.props.pilgrimBriar) return;
+  const { x, y, w } = screen.props.pilgrimBriar;
   for (let offset = 0; offset < w; offset += atlas.tileSize) {
     atlas.drawSprite(ctx, "briar", x + offset, y);
   }
@@ -502,9 +519,15 @@ function drawBriar() {
 
 function drawCache() {
   const screen = activeScreen();
-  if (!screen.props.cache) return;
-  const cache = screen.props.cache;
-  atlas.drawSprite(ctx, state.rewards.watchCacheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
+  if (screen.props.cache) {
+    const cache = screen.props.cache;
+    atlas.drawSprite(ctx, state.rewards.watchCacheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
+  }
+
+  if (screen.props.pilgrimCache) {
+    const cache = screen.props.pilgrimCache;
+    atlas.drawSprite(ctx, state.rewards.pilgrimCacheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
+  }
 }
 
 function drawNpc() {
@@ -669,6 +692,9 @@ function getSolids() {
   if (state.currentScreen === "BM-01" && !state.quest.briarCleared && screen.props.briar) {
     solids.push({ ...screen.props.briar });
   }
+  if (state.currentScreen === "BM-02" && !state.quest.pilgrimBriarCleared && screen.props.pilgrimBriar) {
+    solids.push({ ...screen.props.pilgrimBriar });
+  }
   return solids;
 }
 
@@ -770,31 +796,77 @@ function getInteractionTargets() {
     targets.push({
       rect: screen.props.landmark,
       label: "Read pilgrim marker",
-      onInteract: () => showMessage("Pilgrim Marker", "BM-02 exists for one purpose: to prove the visual law survives translation. The road rises sideways here instead of straight north, but the screen should still read at a glance.")
+      onInteract: () => showMessage("Pilgrim Marker", "The old terrace marker still wins the ridge, even from the side road. A good landmark does not need the same approach angle twice to stay legible.")
     });
 
     targets.push({
       rect: screen.props.npc,
       label: "Talk to Elira",
-      onInteract: () => showMessage("Elira", "Warden's Rise taught the law. Pilgrim's Cut tests it. If this screen feels like the same world without copying the first one outright, the benchmark is working.")
+      onInteract: () => {
+        if (state.rewards.pilgrimCacheCollected) {
+          showMessage("Elira", "Now it feels settled. The shelter, the cut road, and the cache nook make this place feel kept, not drafted.");
+          return;
+        }
+        if (state.quest.pilgrimBriarCleared) {
+          showMessage("Elira", "The thorn choke was hiding the best part of the cut. Once the nook opens, the whole lower field finally reads like it belongs to the same road culture as Warden's Rise.");
+          return;
+        }
+        showMessage("Elira", "Pilgrims once paused at the shelter below before climbing to the marker. If the lower field feels thin, the screen is still missing part of its promise.");
+      }
     });
 
     targets.push({
       rect: screen.props.westWaypost,
       label: "Read west waypost",
-      onInteract: () => showMessage("West Waypost", "Warden's Rise lies west. This return line exists so BM-02 stays a replication test, not a region breakout.")
+      onInteract: () => showMessage("West Waypost", "Warden's Rise lies west along the kept road. This cut should feel like a neighbor to that screen, not a different art language.")
     });
 
     targets.push({
       rect: screen.props.terraceMarker,
       label: "Inspect ascent marker",
-      onInteract: () => showMessage("Ascent Marker", "The stairs pull the eye to the side terrace, proving the same cliff language can redirect composition without breaking readability.")
+      onInteract: () => showMessage("Ascent Marker", "The stair break shifts the climb sideways, but the route still reads cleanly: road first, terrace second, shelter and pocket below.")
     });
 
     targets.push({
       rect: screen.props.eastWaypost,
       label: "Read east marker",
-      onInteract: () => showMessage("East Marker", "No farther world is open here. BM-02 stops at the silhouette test so the benchmark stays disciplined.")
+      onInteract: () => showMessage("East Marker", "The eastern ledge broke away long ago. The road ends at the overlook on purpose, with the marker and broken stone holding the eye instead of an empty promise off-screen.")
+    });
+
+    targets.push({
+      rect: screen.props.pilgrimBriar,
+      label: state.quest.pilgrimBriarCleared ? "Nook cleared" : "Burn thorned nook",
+      onInteract: () => {
+        if (state.quest.pilgrimBriarCleared) {
+          showMessage("Pilgrim Nook", "The thorn choke is gone. The shelter and cache now read as one intentional lower-field pocket.");
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The thorned nook expects the Lantern of Dawn, just like BM-01's briar gate.");
+          return;
+        }
+        state.quest.pilgrimBriarCleared = true;
+        commitProgress("Route saved: Pilgrim nook cleared");
+        showMessage("Pilgrim Nook", "One burn opens the collapsed shelter's side cache. The lower field should feel denser and more authored now, not like empty staging ground.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.pilgrimCache,
+      label: state.rewards.pilgrimCacheCollected ? "Inspect pilgrim cache" : "Open pilgrim cache",
+      onInteract: () => {
+        if (!state.quest.pilgrimBriarCleared) {
+          showMessage("Pilgrim Cache", "You can spot the cache tucked beside the shelter ruins, but the briars still own the approach.");
+          return;
+        }
+        if (!state.rewards.pilgrimCacheCollected) {
+          state.rewards.pilgrimCacheCollected = true;
+          commitProgress("Reward saved: Pilgrim cache collected");
+          showMessage("Pilgrim Cache", "Inside lies a wayfarer's seal and a strip of weathered mapcloth. The reward is small, but the nook now earns its place in the composition.");
+          return;
+        }
+        showMessage("Pilgrim Cache", "The chest is empty now, but the shelter pocket still reads as a real optional discovery.");
+      }
     });
 
     return targets;
