@@ -792,6 +792,87 @@
     return tiles;
   }
 
+  function buildGf01Ground() {
+    const { tiles, place } = fillGrass();
+    const roadTiles = [
+      [9, 0], [10, 0],
+      [9, 1], [10, 1],
+      [9, 2], [10, 2],
+      [8, 4], [9, 4], [10, 4], [11, 4],
+      [8, 5], [9, 5], [10, 5], [11, 5],
+      [6, 6], [7, 6], [8, 6], [9, 6], [10, 6],
+      [4, 7], [5, 7], [6, 7],
+      [10, 7], [11, 7], [12, 7],
+      [3, 8], [4, 8], [5, 8],
+      [13, 8], [14, 8],
+      [2, 9], [3, 9],
+      [14, 9], [15, 9]
+    ];
+
+    for (const [tx, ty] of roadTiles) {
+      place((tx + ty) % 2 === 0 ? "roadA" : "roadB", tx, ty);
+    }
+
+    return tiles;
+  }
+
+  function buildGf01Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 19; tx += 1) {
+      if (tx === 9 || tx === 10) {
+        place("stairs", tx, 3);
+      } else if (tx === 0) {
+        place("cliffLeft", tx, 3);
+      } else if (tx === 19) {
+        place("cliffRight", tx, 3);
+      } else {
+        place("cliffFace", tx, 3);
+      }
+    }
+
+    place("ruinL", 4, 6);
+    place("landmarkTopL", 5, 5);
+    place("landmarkTopR", 6, 5);
+    place("landmarkBaseL", 5, 6);
+    place("landmarkBaseR", 6, 6);
+    place("ruinR", 7, 6);
+
+    place("ruinL", 2, 8);
+    place("ruinR", 3, 8);
+    place("ruinL", 13, 8);
+    place("ruinR", 14, 8);
+
+    place("treeTL", 0, 7);
+    place("treeTR", 1, 7);
+    place("treeBL", 0, 8);
+    place("treeBR", 1, 8);
+
+    place("treeTL", 17, 6);
+    place("treeTR", 18, 6);
+    place("treeBL", 17, 7);
+    place("treeBR", 18, 7);
+
+    place("treeTL", 0, 9);
+    place("treeTR", 1, 9);
+    place("treeBL", 0, 10);
+    place("treeBR", 1, 10);
+
+    place("treeTL", 17, 9);
+    place("treeTR", 18, 9);
+    place("treeBL", 17, 10);
+    place("treeBR", 18, 10);
+
+    place("sign", 2, 7);
+    place("sign", 15, 7);
+
+    return tiles;
+  }
+
   const bm01 = {
     id: "BM-01",
     name: "Warden's Rise",
@@ -1335,7 +1416,8 @@
     size: { w: 320, h: 192 },
     spawns: {
       default: { x: 120, y: 40 },
-      north: { x: 120, y: 40 }
+      north: { x: 120, y: 40 },
+      south: { x: 144, y: 160 }
     },
     layers: {
       ground: buildHv10Ground(),
@@ -1353,7 +1435,8 @@
       southThreshold: { x: 120, y: 160, w: 48, h: 16 }
     },
     transitions: [
-      { rect: rect(80, 0, 48, 8), to: "HV-07", spawn: "southeast" }
+      { rect: rect(80, 0, 48, 8), to: "HV-07", spawn: "southeast" },
+      { rect: rect(120, 184, 48, 8), to: "GF-01", spawn: "north" }
     ],
     enemySpawns: [
       {
@@ -1391,6 +1474,66 @@
     ]
   };
 
+  const gf01 = {
+    id: "GF-01",
+    name: "Marshfoot Entry",
+    region: "Greyfen March",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 154, y: 40 },
+      north: { x: 154, y: 40 }
+    },
+    layers: {
+      ground: buildGf01Ground(),
+      mid: buildGf01Mid(),
+      fore: []
+    },
+    props: {
+      landmark: { x: 80, y: 84, w: 32, h: 30 },
+      marshCache: { x: 32, y: 126, w: 16, h: 16 },
+      northThreshold: { x: 136, y: 0, w: 48, h: 24 },
+      eastMarker: { x: 240, y: 112, w: 16, h: 16 },
+      westMarker: { x: 32, y: 112, w: 16, h: 16 }
+    },
+    transitions: [
+      { rect: rect(136, 0, 48, 8), to: "HV-10", spawn: "south" }
+    ],
+    enemySpawns: [
+      {
+        type: "hound",
+        x: 92,
+        y: 138,
+        min: 58,
+        max: 126,
+        axis: "x",
+        dir: "left",
+        speed: 18,
+        hp: 2
+      },
+      {
+        type: "hound",
+        x: 208,
+        y: 132,
+        min: 176,
+        max: 246,
+        axis: "x",
+        dir: "left",
+        speed: 20,
+        hp: 2
+      }
+    ],
+    baseSolids: [
+      rect(0, 48, 144, 16),
+      rect(176, 48, 144, 16),
+      rect(80, 84, 32, 28),
+      rect(32, 122, 16, 10),
+      rect(0, 112, 32, 48),
+      rect(272, 96, 32, 32),
+      rect(0, 144, 32, 32),
+      rect(272, 144, 32, 32)
+    ]
+  };
+
   window.ElderfieldBenchmarkScreen = bm01;
   window.ElderfieldBenchmarkScreens = {
     [bm01.id]: bm01,
@@ -1402,6 +1545,7 @@
     [hv05.id]: hv05,
     [hv06.id]: hv06,
     [hv07.id]: hv07,
-    [hv10.id]: hv10
+    [hv10.id]: hv10,
+    [gf01.id]: gf01
   };
 })();
