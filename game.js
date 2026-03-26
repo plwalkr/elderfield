@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.9-gf02";
+const BUILD_VERSION = "v0.3.10-gf05";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -130,7 +130,10 @@ function createDefaultSaveData() {
       greyfenDescentLeftLit: false,
       greyfenDescentRightLit: false,
       greyfenDescentBriarCleared: false,
-      greyfenDescentOpen: false
+      greyfenDescentOpen: false,
+      falseMarkerLeftLit: false,
+      falseMarkerRightLit: false,
+      falseMarkerRevealed: false
     },
     rewards: {
       watchCacheCollected: false,
@@ -141,7 +144,8 @@ function createDefaultSaveData() {
       waysideTabletRead: false,
       greyfenNicheCollected: false,
       marshfootChestCollected: false,
-      ferrymanDockCacheCollected: false
+      ferrymanDockCacheCollected: false,
+      falseMarkerEpitaphRead: false
     },
     npcPhases: {
       talan: "waiting",
@@ -247,6 +251,11 @@ function syncDerivedProgress() {
     state.quest.greyfenDescentLeftLit &&
     state.quest.greyfenDescentRightLit &&
     state.quest.greyfenDescentBriarCleared
+  );
+
+  state.quest.falseMarkerRevealed = Boolean(
+    state.quest.falseMarkerLeftLit &&
+    state.quest.falseMarkerRightLit
   );
 
   if (state.rewards.watchCacheCollected) {
@@ -430,6 +439,15 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "GF-05") {
+    if (!state.quest.falseMarkerRevealed) {
+      return "Light both memorial braziers so the false monument stops reading like accepted history and starts exposing the lie beneath it.";
+    }
+    if (!state.rewards.falseMarkerEpitaphRead) {
+      return "The lie is cracked open. Read the revealed epitaph so False Marker Knoll becomes accusation instead of scenery.";
+    }
+    return "False Marker Knoll should now read as Greyfen's first open warning: a dominant monument, a broken official story, and a south road carrying the danger forward.";
+  }
   if (state.currentScreen === "GF-02") {
     if (state.npcPhases.toma === "waiting") {
       return "Speak to Toma so Ferryman's Reach reads as Greyfen's first lived-in foothold, not just another stretch of marsh road.";
@@ -878,6 +896,10 @@ function drawDebugOverlay() {
   if (state.currentScreen === "GF-02") {
     lineA = `toma:${state.npcPhases.toma} cache:${state.rewards.ferrymanDockCacheCollected}`;
     lineB = "path:ferryman's reach";
+  }
+  if (state.currentScreen === "GF-05") {
+    lineA = `left:${state.quest.falseMarkerLeftLit} right:${state.quest.falseMarkerRightLit}`;
+    lineB = `truth:${state.quest.falseMarkerRevealed} epitaph:${state.rewards.falseMarkerEpitaphRead}`;
   }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
@@ -1647,13 +1669,78 @@ function getInteractionTargets() {
     targets.push({
       rect: screen.props.southThreshold,
       label: "Look south",
-      onInteract: () => showMessage("South Road", "The causeway falls away toward older grave-markers and deeper marsh roads. `GF-05 False Marker Knoll` is the next main-route screen after this crossing-place.")
+      onInteract: () => showMessage("South Road", "The causeway falls away toward False Marker Knoll, where Greyfen first points the road at the wrong dead on purpose.")
     });
 
     targets.push({
       rect: screen.props.eastMarker,
       label: "Inspect dock posts",
       onInteract: () => showMessage("Dock Posts", "Every post wears ribbons, coins, or names for the dead. The detail is small, but it gives Greyfen mourning culture without turning the screen into lore clutter.")
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "GF-05") {
+    const makeFalseMarkerBrazier = (rect, questKey, title) => ({
+      rect,
+      label: state.quest[questKey] ? `Inspect ${title.toLowerCase()}` : `Light ${title.toLowerCase()}`,
+      onInteract: () => {
+        if (state.quest[questKey]) {
+          showMessage(title, `${title} already burns low against the wet wind. The knoll no longer feels mute.`);
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The memorial brazier needs sacred flame before the false stone will answer.");
+          return;
+        }
+        state.quest[questKey] = true;
+        commitProgress(`Route saved: ${title} lit`);
+        if (state.quest.falseMarkerRevealed) {
+          showMessage(title, "The second flame catches and the mud-sunk base inscription answers at last. The monument still stands, but now it accuses the lie written above it.");
+          return;
+        }
+        showMessage(title, `${title} wakes with a shallow ember. One side of the knoll remembers more than the monument admits.`);
+      }
+    });
+
+    targets.push({
+      rect: screen.props.npc,
+      label: "Talk to Nara",
+      onInteract: () => showMessage("Nara", "They come here to read the kingdom's version of the dead. Then the marsh heaves and another name works loose from the mud below. That is why no one in Greyfen trusts a clean monument anymore.")
+    });
+
+    targets.push({
+      rect: screen.props.landmark,
+      label: state.rewards.falseMarkerEpitaphRead ? "Read revealed epitaph" : "Read false marker",
+      onInteract: () => {
+        if (!state.quest.falseMarkerRevealed) {
+          showMessage("False Marker", "The carved face blames the Wardens for abandoning Greyfen in the old war. The words are too neat for this place, which is exactly why the stone feels dangerous.");
+          return;
+        }
+        if (!state.rewards.falseMarkerEpitaphRead) {
+          state.rewards.falseMarkerEpitaphRead = true;
+          commitProgress("Lore saved: False marker epitaph read");
+          showMessage("Buried Epitaph", "Under the official inscription, older names push through the mud: wardens, bearers, ferrymen, kin. The kingdom did not mark a betrayal here. It buried the people who tried to hold the road.");
+          return;
+        }
+        showMessage("Buried Epitaph", "Once you know to look beneath the official carving, the whole knoll reads differently. The monument is no longer history. It is evidence.");
+      }
+    });
+
+    targets.push(makeFalseMarkerBrazier(screen.props.leftBrazier, "falseMarkerLeftLit", "Left Memorial Brazier"));
+    targets.push(makeFalseMarkerBrazier(screen.props.rightBrazier, "falseMarkerRightLit", "Right Memorial Brazier"));
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: "Look back to Ferryman's Reach",
+      onInteract: () => showMessage("North Road", "Ferryman's Reach still feels human behind you. That warmth makes the false monument ahead feel colder and more deliberate.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look south",
+      onInteract: () => showMessage("South Road", "The graves thicken below the knoll and the road sinks deeper into the dead. `GF-06 Memorial Flats` is the next main-route screen after this warning point.")
     });
 
     return targets;
@@ -1912,7 +1999,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus ten live production route screens, carrying the same atlas law from benchmark ground into the first kept Greyfen crossing with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus eleven live production route screens, carrying the same atlas law from benchmark ground into Greyfen's first false monument warning with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -1922,7 +2009,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through ten production screens into the first kept Greyfen crossing under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through eleven production screens into Greyfen's first false-monument warning under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
