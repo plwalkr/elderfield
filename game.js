@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.7-hv10";
+const BUILD_VERSION = "v0.3.8-gf01";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -139,7 +139,8 @@ function createDefaultSaveData() {
       watchersCacheCollected: false,
       watchgateWallCacheCollected: false,
       waysideTabletRead: false,
-      greyfenNicheCollected: false
+      greyfenNicheCollected: false,
+      marshfootChestCollected: false
     },
     npcPhases: {
       talan: "waiting"
@@ -427,6 +428,12 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "GF-01") {
+    if (!state.rewards.marshfootChestCollected) {
+      return "Marshfoot Entry should feel like the first true threshold into Greyfen: claim the west cache so the optional pocket proves the road is still authored even as the ground softens.";
+    }
+    return "Marshfoot Entry should now read as a careful threshold: Highroad stone behind, wet lowland memory ahead, and the road still readable enough to trust.";
+  }
   if (state.currentScreen === "HV-10") {
     if (!state.quest.greyfenDescentBriarCleared) {
       return "Burn the corruption-thorn on the descent switchback so the road can begin to sag out of the uplands and toward Greyfen.";
@@ -694,6 +701,11 @@ function drawCache() {
     atlas.drawSprite(ctx, state.rewards.greyfenNicheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
   }
 
+  if (screen.props.marshCache) {
+    const cache = screen.props.marshCache;
+    atlas.drawSprite(ctx, state.rewards.marshfootChestCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
+  }
+
   if (screen.props.ledgeCache) {
     const cache = screen.props.ledgeCache;
     atlas.drawSprite(ctx, "chestClosed", cache.x, cache.y);
@@ -842,6 +854,10 @@ function drawDebugOverlay() {
   if (state.currentScreen === "HV-10") {
     lineA = `left:${state.quest.greyfenDescentLeftLit} right:${state.quest.greyfenDescentRightLit}`;
     lineB = `thorn:${state.quest.greyfenDescentBriarCleared} open:${state.quest.greyfenDescentOpen}`;
+  }
+  if (state.currentScreen === "GF-01") {
+    lineA = `cache:${state.rewards.marshfootChestCollected} route:marshfoot`;
+    lineB = "path:greyfen threshold";
   }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
@@ -1514,8 +1530,50 @@ function getInteractionTargets() {
           showMessage("Lower Descent", "The Greyfen road is not ready yet. Clear the switchback thorn and light both descent braziers before committing the turn downward.");
           return;
         }
-        showMessage("Lower Descent", "The stone road sags into wet earth and vanishes into fog. `GF-01 Marshfoot Entry` is the next main-route production screen.");
+        showMessage("Lower Descent", "The stone road sags into wet earth and vanishes into fog. Marshfoot waits below as the first true Greyfen threshold, not a full swamp reveal.");
       }
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "GF-01") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read marsh stone",
+      onInteract: () => showMessage("Marsh Stone", "The last upright roadstone here marks not a border of kingdoms, but a border of certainty. Beyond it the Highroad must learn to survive on softer ground without losing its memory.")
+    });
+
+    targets.push({
+      rect: screen.props.marshCache,
+      label: state.rewards.marshfootChestCollected ? "Inspect marsh cache" : "Open marsh cache",
+      onInteract: () => {
+        if (!state.rewards.marshfootChestCollected) {
+          state.rewards.marshfootChestCollected = true;
+          commitProgress("Reward saved: Marshfoot cache collected");
+          showMessage("Marsh Cache", "Inside rests waxed cord, a sealed candle stub, and dry wrapping for road maps. The pocket is small, but it proves the route is still hand-kept even where the upland stone begins to fail.");
+          return;
+        }
+        showMessage("Marsh Cache", "The cache is empty now, but the west shoulder nook still reads as a deliberate hold at the edge of Greyfen.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: "Look back uphill",
+      onInteract: () => showMessage("Upper Road", "Greyfen Descent still rises behind you in dry, old stone. Marshfoot works because the Highroad remains visible in memory even as the land begins to soften.")
+    });
+
+    targets.push({
+      rect: screen.props.eastMarker,
+      label: "Inspect east marker",
+      onInteract: () => showMessage("East Marker", "A drowned post leans toward deeper marsh road. `GF-02 Ferryman's Reach` is the next true main-route screen from here.")
+    });
+
+    targets.push({
+      rect: screen.props.westMarker,
+      label: "Inspect west marker",
+      onInteract: () => showMessage("West Marker", "A split marker points toward the reed road. That branch belongs to a later return, not this main-route pass.")
     });
 
     return targets;
@@ -1774,7 +1832,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus the first eight production Highroad screens, all assembled from the same atlas with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus nine live production route screens, carrying the same atlas law from benchmark ground into the first Greyfen threshold with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -1784,7 +1842,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the Highroad chain now continues through eight live production screens under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through nine production screens into the first Greyfen threshold under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
