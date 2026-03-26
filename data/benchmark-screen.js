@@ -873,6 +873,86 @@
     return tiles;
   }
 
+  function buildGf02Ground() {
+    const { tiles, place } = fillGrass();
+    const roadTiles = [
+      [0, 6], [1, 6], [2, 6], [3, 6],
+      [2, 7], [3, 7], [4, 7], [5, 7], [6, 7],
+      [5, 6], [6, 6], [7, 6], [8, 6], [9, 6],
+      [8, 7], [9, 7], [10, 7], [11, 7],
+      [9, 8], [10, 8], [11, 8],
+      [9, 9], [10, 9], [11, 9],
+      [9, 10], [10, 10],
+      [9, 11], [10, 11],
+      [12, 7], [13, 7],
+      [13, 8], [14, 8],
+      [14, 9], [15, 9]
+    ];
+
+    for (const [tx, ty] of roadTiles) {
+      place((tx + ty) % 2 === 0 ? "roadA" : "roadB", tx, ty);
+    }
+
+    return tiles;
+  }
+
+  function buildGf02Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 6; tx += 1) {
+      if (tx === 5 || tx === 6) {
+        place("stairs", tx, 4);
+      } else if (tx === 0) {
+        place("cliffLeft", tx, 4);
+      } else {
+        place("cliffFace", tx, 4);
+      }
+    }
+
+    place("houseRoofL", 1, 1);
+    place("houseRoofM", 2, 1);
+    place("houseRoofR", 3, 1);
+    place("houseWallL", 1, 2);
+    place("houseDoor", 2, 2);
+    place("houseWallR", 3, 2);
+
+    place("ruinL", 9, 5);
+    place("landmarkTopL", 10, 4);
+    place("landmarkTopR", 11, 4);
+    place("landmarkBaseL", 10, 5);
+    place("landmarkBaseR", 11, 5);
+    place("ruinR", 12, 5);
+
+    place("ruinL", 14, 8);
+    place("ruinR", 15, 8);
+
+    place("treeTL", 17, 2);
+    place("treeTR", 18, 2);
+    place("treeBL", 17, 3);
+    place("treeBR", 18, 3);
+
+    place("treeTL", 0, 8);
+    place("treeTR", 1, 8);
+    place("treeBL", 0, 9);
+    place("treeBR", 1, 9);
+
+    place("treeTL", 17, 8);
+    place("treeTR", 18, 8);
+    place("treeBL", 17, 9);
+    place("treeBR", 18, 9);
+
+    place("sign", 8, 8);
+    place("sign", 12, 8);
+    place("sign", 15, 7);
+    place("sign", 9, 10);
+
+    return tiles;
+  }
+
   const bm01 = {
     id: "BM-01",
     name: "Warden's Rise",
@@ -1481,7 +1561,8 @@
     size: { w: 320, h: 192 },
     spawns: {
       default: { x: 154, y: 40 },
-      north: { x: 154, y: 40 }
+      north: { x: 154, y: 40 },
+      east: { x: 274, y: 104 }
     },
     layers: {
       ground: buildGf01Ground(),
@@ -1496,7 +1577,8 @@
       westMarker: { x: 32, y: 112, w: 16, h: 16 }
     },
     transitions: [
-      { rect: rect(136, 0, 48, 8), to: "HV-10", spawn: "south" }
+      { rect: rect(136, 0, 48, 8), to: "HV-10", spawn: "south" },
+      { rect: rect(304, 96, 16, 48), to: "GF-02", spawn: "west" }
     ],
     enemySpawns: [
       {
@@ -1534,6 +1616,55 @@
     ]
   };
 
+  const gf02 = {
+    id: "GF-02",
+    name: "Ferryman's Reach",
+    region: "Greyfen March",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 24, y: 104 },
+      west: { x: 24, y: 104 }
+    },
+    layers: {
+      ground: buildGf02Ground(),
+      mid: buildGf02Mid(),
+      fore: []
+    },
+    props: {
+      npc: { x: 116, y: 102, w: 16, h: 16 },
+      landmark: { x: 160, y: 68, w: 32, h: 30 },
+      dockCache: { x: 240, y: 126, w: 16, h: 16 },
+      westThreshold: { x: 0, y: 96, w: 16, h: 48 },
+      southThreshold: { x: 136, y: 160, w: 48, h: 16 },
+      eastMarker: { x: 240, y: 112, w: 16, h: 16 }
+    },
+    transitions: [
+      { rect: rect(-2, 96, 16, 48), to: "GF-01", spawn: "east" }
+    ],
+    enemySpawns: [
+      {
+        type: "hound",
+        x: 236,
+        y: 144,
+        min: 208,
+        max: 266,
+        axis: "x",
+        dir: "left",
+        speed: 18,
+        hp: 2
+      }
+    ],
+    baseSolids: [
+      rect(0, 64, 96, 16),
+      rect(16, 32, 48, 32),
+      rect(160, 68, 32, 28),
+      rect(224, 122, 48, 10),
+      rect(0, 128, 32, 32),
+      rect(272, 32, 32, 48),
+      rect(272, 128, 32, 32)
+    ]
+  };
+
   window.ElderfieldBenchmarkScreen = bm01;
   window.ElderfieldBenchmarkScreens = {
     [bm01.id]: bm01,
@@ -1546,6 +1677,7 @@
     [hv06.id]: hv06,
     [hv07.id]: hv07,
     [hv10.id]: hv10,
-    [gf01.id]: gf01
+    [gf01.id]: gf01,
+    [gf02.id]: gf02
   };
 })();
