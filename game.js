@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.12-gf07";
+const BUILD_VERSION = "v0.3.13-gf10";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -138,7 +138,8 @@ function createDefaultSaveData() {
       namelessStoneClueFound: false,
       causewayLeftLit: false,
       causewayRightLit: false,
-      causewayClear: false
+      causewayClear: false,
+      fenwatchWinchCleared: false
     },
     rewards: {
       watchCacheCollected: false,
@@ -450,6 +451,12 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "GF-10") {
+    if (!state.quest.fenwatchWinchCleared) {
+      return "Burn the thorn-choked chain winch so Fenwatch stops reading like distant accusation and becomes a true dungeon threshold.";
+    }
+    return "Fenwatch Approach should now read as final overworld pressure: bell, chain, vault, and gate all converging into one accusation against the kingdom.";
+  }
   if (state.currentScreen === "GF-07") {
     if (!state.quest.causewayClear) {
       return "Light both causeway braziers so the drowned road stops reading like blind pressure and starts reading like a disciplined line toward Fenwatch.";
@@ -734,6 +741,15 @@ function drawBriar() {
       }
     }
   }
+
+  if (state.currentScreen === "GF-10") {
+    if (!state.quest.fenwatchWinchCleared && screen.props.winchBriar) {
+      const { x, y, w } = screen.props.winchBriar;
+      for (let offset = 0; offset < w; offset += atlas.tileSize) {
+        atlas.drawSprite(ctx, "briar", x + offset, y);
+      }
+    }
+  }
 }
 
 function drawCache() {
@@ -952,6 +968,10 @@ function drawDebugOverlay() {
     lineA = `left:${state.quest.causewayLeftLit} right:${state.quest.causewayRightLit}`;
     lineB = `clear:${state.quest.causewayClear} path:causeway`;
   }
+  if (state.currentScreen === "GF-10") {
+    lineA = `winch:${state.quest.fenwatchWinchCleared} gate:fenwatch`;
+    lineB = "path:final exterior";
+  }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
   drawPixelText(lineB, 14, 64);
@@ -1048,6 +1068,9 @@ function getSolids() {
   }
   if (state.currentScreen === "GF-07" && !state.quest.causewayClear && screen.props.southSeal) {
     solids.push({ ...screen.props.southSeal });
+  }
+  if (state.currentScreen === "GF-10" && !state.quest.fenwatchWinchCleared && screen.props.doorSeal) {
+    solids.push({ ...screen.props.doorSeal });
   }
   return solids;
 }
@@ -1936,6 +1959,58 @@ function getInteractionTargets() {
     return targets;
   }
 
+  if (state.currentScreen === "GF-10") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read gate stone",
+      onInteract: () => showMessage("Gate Stone", "The final stone names Fenwatch not as fortress alone, but as a kept line between the honored dead and what the kingdom feared to uncover below them. This is where Greyfen's grief becomes evidence.")
+    });
+
+    targets.push({
+      rect: screen.props.winchBriar,
+      label: state.quest.fenwatchWinchCleared ? "Inspect cleared chain winch" : "Burn chain-winch thorn",
+      onInteract: () => {
+        if (state.quest.fenwatchWinchCleared) {
+          showMessage("Chain Winch", "The briars are gone and the old chain answers cleanly. Fenwatch now reads as a true threshold instead of a sealed accusation.");
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The chain winch is still strangled by black thorn.");
+          return;
+        }
+        state.quest.fenwatchWinchCleared = true;
+        commitProgress("Route saved: Fenwatch chain winch cleared");
+        showMessage("Chain Winch", "The thorn burns back from the chain housing and the gate mouth answers with a low iron groan. Fenwatch is open now, even if the catacombs below remain for the next pass.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: "Look back to Drowned Causeway",
+      onInteract: () => showMessage("North Road", "The causeway behind you still holds its disciplined line through the marsh. That pressure is what makes Fenwatch feel earned instead of abrupt.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: state.quest.fenwatchWinchCleared ? "Stand at the catacomb door" : "Catacomb door sealed",
+      onInteract: () => {
+        if (!state.quest.fenwatchWinchCleared) {
+          showMessage("Catacomb Door", "The lower door remains bound by the jammed chain works. Clear the winch first so the approach can finish becoming a real destination.");
+          return;
+        }
+        showMessage("Catacomb Door", "The catacomb door stands ready below the bell stone and vault mouth. This overworld pass stops here on purpose: Fenwatch Catacombs should begin as its own deliberate dungeon slice.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.westReturnHint,
+      label: "Inspect west chain post",
+      onInteract: () => showMessage("West Chain Post", "A return chain post sits half-submerged off the west edge. It promises a later Greyfen shortcut without pulling focus away from Fenwatch itself.")
+    });
+
+    return targets;
+  }
+
   if (state.currentScreen === "BM-02") {
     targets.push({
       rect: screen.props.landmark,
@@ -2189,7 +2264,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus thirteen live production route screens, carrying the same atlas law from benchmark ground into Greyfen's drowned causeway with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus fourteen live production route screens, carrying the same atlas law from benchmark ground to Fenwatch's outer gate with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -2199,7 +2274,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through thirteen production screens into Greyfen's drowned causeway under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through fourteen production screens to Fenwatch's outer gate under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
