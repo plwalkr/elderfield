@@ -1035,6 +1035,177 @@
     return tiles;
   }
 
+  function buildGf06Ground() {
+    const { tiles, place } = fillGrass();
+    const roadTiles = [
+      [9, 0], [10, 0],
+      [9, 1], [10, 1],
+      [9, 2], [10, 2],
+      [8, 3], [9, 3], [10, 3], [11, 3],
+      [8, 4], [9, 4], [10, 4], [11, 4],
+      [8, 5], [9, 5], [10, 5], [11, 5],
+      [8, 6], [9, 6], [10, 6], [11, 6],
+      [8, 7], [9, 7], [10, 7], [11, 7],
+      [9, 8], [10, 8],
+      [9, 9], [10, 9],
+      [9, 10], [10, 10],
+      [9, 11], [10, 11],
+      [3, 4], [4, 4],
+      [2, 3], [3, 3], [4, 3]
+    ];
+
+    for (const [tx, ty] of roadTiles) {
+      place((tx + ty) % 2 === 0 ? "roadA" : "roadB", tx, ty);
+    }
+
+    return tiles;
+  }
+
+  function buildGf06Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 6; tx += 1) {
+      if (tx === 3 || tx === 4) {
+        place("stairs", tx, 5);
+      } else if (tx === 0) {
+        place("cliffLeft", tx, 5);
+      } else if (tx === 6) {
+        place("cliffRight", tx, 5);
+      } else {
+        place("cliffFace", tx, 5);
+      }
+    }
+
+    place("ruinL", 0, 3);
+    place("landmarkTopL", 1, 2);
+    place("landmarkTopR", 2, 2);
+    place("landmarkBaseL", 1, 3);
+    place("landmarkBaseR", 2, 3);
+    place("ruinR", 3, 3);
+
+    place("sign", 8, 6);
+    place("sign", 11, 6);
+    place("sign", 7, 7);
+    place("sign", 12, 7);
+    place("sign", 6, 8);
+    place("sign", 13, 8);
+    place("sign", 5, 9);
+    place("sign", 14, 9);
+
+    place("ruinL", 4, 8);
+    place("ruinR", 5, 8);
+    place("ruinL", 14, 7);
+    place("ruinR", 15, 7);
+
+    place("treeTL", 17, 1);
+    place("treeTR", 18, 1);
+    place("treeBL", 17, 2);
+    place("treeBR", 18, 2);
+
+    place("treeTL", 0, 9);
+    place("treeTR", 1, 9);
+    place("treeBL", 0, 10);
+    place("treeBR", 1, 10);
+
+    place("treeTL", 17, 9);
+    place("treeTR", 18, 9);
+    place("treeBL", 17, 10);
+    place("treeBR", 18, 10);
+
+    place("sign", 15, 6);
+
+    return tiles;
+  }
+
+  function buildGf07Ground() {
+    const { tiles, place } = fillGrass();
+    const roadTiles = [
+      [9, 0], [10, 0],
+      [9, 1], [10, 1],
+      [8, 2], [9, 2], [10, 2], [11, 2],
+      [8, 3], [9, 3], [10, 3], [11, 3],
+      [8, 4], [9, 4], [10, 4], [11, 4],
+      [7, 5], [8, 5], [9, 5], [10, 5], [11, 5], [12, 5],
+      [8, 6], [9, 6], [10, 6], [11, 6],
+      [9, 7], [10, 7],
+      [8, 8], [9, 8], [10, 8], [11, 8],
+      [8, 9], [9, 9], [10, 9], [11, 9],
+      [9, 10], [10, 10],
+      [9, 11], [10, 11]
+    ];
+
+    for (const [tx, ty] of roadTiles) {
+      place((tx + ty) % 2 === 0 ? "roadA" : "roadB", tx, ty);
+    }
+
+    return tiles;
+  }
+
+  function buildGf07Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 19; tx += 1) {
+      if (tx === 9 || tx === 10) {
+        place("stairs", tx, 6);
+      } else if (tx === 0) {
+        place("cliffLeft", tx, 6);
+      } else if (tx === 19) {
+        place("cliffRight", tx, 6);
+      } else {
+        place("cliffFace", tx, 6);
+      }
+    }
+
+    place("ruinL", 8, 2);
+    place("landmarkTopL", 9, 1);
+    place("landmarkTopR", 10, 1);
+    place("landmarkBaseL", 9, 2);
+    place("landmarkBaseR", 10, 2);
+    place("ruinR", 11, 2);
+
+    place("sign", 7, 5);
+    place("sign", 12, 5);
+    place("sign", 8, 7);
+    place("sign", 11, 7);
+
+    place("ruinL", 4, 8);
+    place("ruinR", 5, 8);
+    place("ruinL", 14, 8);
+    place("ruinR", 15, 8);
+
+    place("treeTL", 0, 1);
+    place("treeTR", 1, 1);
+    place("treeBL", 0, 2);
+    place("treeBR", 1, 2);
+
+    place("treeTL", 17, 1);
+    place("treeTR", 18, 1);
+    place("treeBL", 17, 2);
+    place("treeBR", 18, 2);
+
+    place("treeTL", 0, 9);
+    place("treeTR", 1, 9);
+    place("treeBL", 0, 10);
+    place("treeBR", 1, 10);
+
+    place("treeTL", 17, 9);
+    place("treeTR", 18, 9);
+    place("treeBL", 17, 10);
+    place("treeBR", 18, 10);
+
+    place("sign", 15, 7);
+
+    return tiles;
+  }
+
   const bm01 = {
     id: "BM-01",
     name: "Warden's Rise",
@@ -1756,7 +1927,8 @@
     size: { w: 320, h: 192 },
     spawns: {
       default: { x: 154, y: 40 },
-      north: { x: 154, y: 40 }
+      north: { x: 154, y: 40 },
+      south: { x: 154, y: 160 }
     },
     layers: {
       ground: buildGf05Ground(),
@@ -1772,7 +1944,8 @@
       southThreshold: { x: 136, y: 160, w: 48, h: 16 }
     },
     transitions: [
-      { rect: rect(136, 0, 48, 8), to: "GF-02", spawn: "south" }
+      { rect: rect(136, 0, 48, 8), to: "GF-02", spawn: "south" },
+      { rect: rect(136, 184, 48, 8), to: "GF-06", spawn: "north" }
     ],
     enemySpawns: [
       {
@@ -1808,6 +1981,132 @@
     ]
   };
 
+  const gf06 = {
+    id: "GF-06",
+    name: "Memorial Flats",
+    region: "Greyfen March",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 154, y: 40 },
+      north: { x: 154, y: 40 },
+      south: { x: 154, y: 160 }
+    },
+    layers: {
+      ground: buildGf06Ground(),
+      mid: buildGf06Mid(),
+      fore: []
+    },
+    props: {
+      landmark: { x: 16, y: 32, w: 32, h: 30 },
+      graveBriar: { x: 128, y: 128, w: 64, h: 16 },
+      clueGraves: { x: 80, y: 126, w: 32, h: 16 },
+      tombCache: { x: 64, y: 46, w: 16, h: 16 },
+      northThreshold: { x: 136, y: 0, w: 48, h: 24 },
+      southThreshold: { x: 136, y: 160, w: 48, h: 16 },
+      eastBreach: { x: 240, y: 96, w: 16, h: 16 }
+    },
+    transitions: [
+      { rect: rect(136, 0, 48, 8), to: "GF-05", spawn: "south" },
+      { rect: rect(136, 184, 48, 8), to: "GF-07", spawn: "north" }
+    ],
+    enemySpawns: [
+      {
+        type: "hound",
+        x: 90,
+        y: 144,
+        min: 56,
+        max: 120,
+        axis: "x",
+        dir: "left",
+        speed: 18,
+        hp: 2
+      },
+      {
+        type: "hound",
+        x: 212,
+        y: 146,
+        min: 180,
+        max: 242,
+        axis: "x",
+        dir: "left",
+        speed: 20,
+        hp: 2
+      }
+    ],
+    baseSolids: [
+      rect(0, 80, 48, 16),
+      rect(80, 80, 32, 16),
+      rect(16, 32, 32, 28),
+      rect(0, 144, 32, 32),
+      rect(272, 32, 32, 32),
+      rect(272, 144, 32, 32)
+    ]
+  };
+
+  const gf07 = {
+    id: "GF-07",
+    name: "Drowned Causeway",
+    region: "Greyfen March",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 154, y: 40 },
+      north: { x: 154, y: 40 },
+      south: { x: 154, y: 152 }
+    },
+    layers: {
+      ground: buildGf07Ground(),
+      mid: buildGf07Mid(),
+      fore: []
+    },
+    props: {
+      landmark: { x: 144, y: 20, w: 32, h: 30 },
+      leftBrazier: { x: 112, y: 82, w: 16, h: 16 },
+      rightBrazier: { x: 192, y: 82, w: 16, h: 16 },
+      northThreshold: { x: 136, y: 0, w: 48, h: 24 },
+      southThreshold: { x: 136, y: 160, w: 48, h: 16 },
+      southSeal: { x: 128, y: 112, w: 64, h: 16 },
+      sideChain: { x: 240, y: 112, w: 16, h: 16 }
+    },
+    transitions: [
+      { rect: rect(136, 0, 48, 8), to: "GF-06", spawn: "south" }
+    ],
+    enemySpawns: [
+      {
+        type: "hound",
+        x: 84,
+        y: 140,
+        min: 56,
+        max: 120,
+        axis: "x",
+        dir: "left",
+        speed: 18,
+        hp: 2
+      },
+      {
+        type: "hound",
+        x: 222,
+        y: 138,
+        min: 188,
+        max: 252,
+        axis: "x",
+        dir: "left",
+        speed: 20,
+        hp: 2
+      }
+    ],
+    baseSolids: [
+      rect(0, 96, 144, 16),
+      rect(176, 96, 144, 16),
+      rect(144, 20, 32, 28),
+      rect(64, 138, 32, 10),
+      rect(224, 138, 32, 10),
+      rect(0, 32, 32, 32),
+      rect(272, 32, 32, 32),
+      rect(0, 144, 32, 32),
+      rect(272, 144, 32, 32)
+    ]
+  };
+
   window.ElderfieldBenchmarkScreen = bm01;
   window.ElderfieldBenchmarkScreens = {
     [bm01.id]: bm01,
@@ -1822,6 +2121,8 @@
     [hv10.id]: hv10,
     [gf01.id]: gf01,
     [gf02.id]: gf02,
-    [gf05.id]: gf05
+    [gf05.id]: gf05,
+    [gf06.id]: gf06,
+    [gf07.id]: gf07
   };
 })();
