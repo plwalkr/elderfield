@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.8-gf01";
+const BUILD_VERSION = "v0.3.9-gf02";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -140,10 +140,12 @@ function createDefaultSaveData() {
       watchgateWallCacheCollected: false,
       waysideTabletRead: false,
       greyfenNicheCollected: false,
-      marshfootChestCollected: false
+      marshfootChestCollected: false,
+      ferrymanDockCacheCollected: false
     },
     npcPhases: {
-      talan: "waiting"
+      talan: "waiting",
+      toma: "waiting"
     },
     checkpoint: {
       screenId: benchmarkScreen.id,
@@ -428,6 +430,15 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "GF-02") {
+    if (state.npcPhases.toma === "waiting") {
+      return "Speak to Toma so Ferryman's Reach reads as Greyfen's first lived-in foothold, not just another stretch of marsh road.";
+    }
+    if (!state.rewards.ferrymanDockCacheCollected) {
+      return "Sweep the ribboned dock cache so the crossing keeps one authored optional pocket instead of flattening into pure route logic.";
+    }
+    return "Ferryman's Reach should now read as a true crossing-place: one keeper, one mournful dock landmark, and one clear southward promise held in reserve.";
+  }
   if (state.currentScreen === "GF-01") {
     if (!state.rewards.marshfootChestCollected) {
       return "Marshfoot Entry should feel like the first true threshold into Greyfen: claim the west cache so the optional pocket proves the road is still authored even as the ground softens.";
@@ -706,6 +717,11 @@ function drawCache() {
     atlas.drawSprite(ctx, state.rewards.marshfootChestCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
   }
 
+  if (screen.props.dockCache) {
+    const cache = screen.props.dockCache;
+    atlas.drawSprite(ctx, state.rewards.ferrymanDockCacheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
+  }
+
   if (screen.props.ledgeCache) {
     const cache = screen.props.ledgeCache;
     atlas.drawSprite(ctx, "chestClosed", cache.x, cache.y);
@@ -858,6 +874,10 @@ function drawDebugOverlay() {
   if (state.currentScreen === "GF-01") {
     lineA = `cache:${state.rewards.marshfootChestCollected} route:marshfoot`;
     lineB = "path:greyfen threshold";
+  }
+  if (state.currentScreen === "GF-02") {
+    lineA = `toma:${state.npcPhases.toma} cache:${state.rewards.ferrymanDockCacheCollected}`;
+    lineB = "path:ferryman's reach";
   }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
@@ -1567,13 +1587,73 @@ function getInteractionTargets() {
     targets.push({
       rect: screen.props.eastMarker,
       label: "Inspect east marker",
-      onInteract: () => showMessage("East Marker", "A drowned post leans toward deeper marsh road. `GF-02 Ferryman's Reach` is the next true main-route screen from here.")
+      onInteract: () => showMessage("East Marker", "A drowned post leans toward Ferryman's Reach, where Greyfen first becomes a place people still keep instead of a road the kingdom abandoned.")
     });
 
     targets.push({
       rect: screen.props.westMarker,
       label: "Inspect west marker",
       onInteract: () => showMessage("West Marker", "A split marker points toward the reed road. That branch belongs to a later return, not this main-route pass.")
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "GF-02") {
+    targets.push({
+      rect: screen.props.npc,
+      label: "Talk to Toma",
+      onInteract: () => {
+        if (state.npcPhases.toma === "waiting") {
+          state.npcPhases.toma = "met";
+          commitProgress("Dialogue saved: Toma met");
+          showMessage("Toma", "No one crosses Greyfen clean anymore. They stop here, leave a ribbon or a coin, and ask the Reach to remember the names the marsh keeps taking. That is enough to make this place feel inhabited, not merely traversed.");
+          return;
+        }
+        if (state.rewards.ferrymanDockCacheCollected) {
+          showMessage("Toma", "Now it sits right. Hut, dock, offerings, and cache all read like one kept edge of the world instead of scattered props in wet ground.");
+          return;
+        }
+        showMessage("Toma", "The little dock cache is still tucked behind the memorial posts. Even in Greyfen, a good road keeps one useful kindness close to hand.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read reach stone",
+      onInteract: () => showMessage("Reach Stone", "The stone names this place not for ownership, but for passing and return. Ferryman's Reach is where the road stops commanding the land and starts pleading with it.")
+    });
+
+    targets.push({
+      rect: screen.props.dockCache,
+      label: state.rewards.ferrymanDockCacheCollected ? "Inspect dock cache" : "Open dock cache",
+      onInteract: () => {
+        if (!state.rewards.ferrymanDockCacheCollected) {
+          state.rewards.ferrymanDockCacheCollected = true;
+          commitProgress("Reward saved: Ferryman dock cache collected");
+          showMessage("Dock Cache", "Inside rests dry twine, wrapped bread, and lamp wax sealed against the wet. The reward is humble, but the little dock pocket makes the Reach feel truly kept by human hands.");
+          return;
+        }
+        showMessage("Dock Cache", "The dock cache is empty now, but the ribboned corner still reads as a deliberate kindness at the edge of the marsh.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.westThreshold,
+      label: "Look back to Marshfoot",
+      onInteract: () => showMessage("West Road", "Marshfoot still holds the last clear memory of the Highroad's stone. Ferryman's Reach works because that memory remains visible behind the softer ground.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look south",
+      onInteract: () => showMessage("South Road", "The causeway falls away toward older grave-markers and deeper marsh roads. `GF-05 False Marker Knoll` is the next main-route screen after this crossing-place.")
+    });
+
+    targets.push({
+      rect: screen.props.eastMarker,
+      label: "Inspect dock posts",
+      onInteract: () => showMessage("Dock Posts", "Every post wears ribbons, coins, or names for the dead. The detail is small, but it gives Greyfen mourning culture without turning the screen into lore clutter.")
     });
 
     return targets;
@@ -1832,7 +1912,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus nine live production route screens, carrying the same atlas law from benchmark ground into the first Greyfen threshold with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus ten live production route screens, carrying the same atlas law from benchmark ground into the first kept Greyfen crossing with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -1842,7 +1922,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through nine production screens into the first Greyfen threshold under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through ten production screens into the first kept Greyfen crossing under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
