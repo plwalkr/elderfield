@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.10-gf05";
+const BUILD_VERSION = "v0.3.12-gf07";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -133,7 +133,12 @@ function createDefaultSaveData() {
       greyfenDescentOpen: false,
       falseMarkerLeftLit: false,
       falseMarkerRightLit: false,
-      falseMarkerRevealed: false
+      falseMarkerRevealed: false,
+      memorialFlatsPathCleared: false,
+      namelessStoneClueFound: false,
+      causewayLeftLit: false,
+      causewayRightLit: false,
+      causewayClear: false
     },
     rewards: {
       watchCacheCollected: false,
@@ -145,7 +150,8 @@ function createDefaultSaveData() {
       greyfenNicheCollected: false,
       marshfootChestCollected: false,
       ferrymanDockCacheCollected: false,
-      falseMarkerEpitaphRead: false
+      falseMarkerEpitaphRead: false,
+      memorialTombCollected: false
     },
     npcPhases: {
       talan: "waiting",
@@ -256,6 +262,11 @@ function syncDerivedProgress() {
   state.quest.falseMarkerRevealed = Boolean(
     state.quest.falseMarkerLeftLit &&
     state.quest.falseMarkerRightLit
+  );
+
+  state.quest.causewayClear = Boolean(
+    state.quest.causewayLeftLit &&
+    state.quest.causewayRightLit
   );
 
   if (state.rewards.watchCacheCollected) {
@@ -439,6 +450,24 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "GF-07") {
+    if (!state.quest.causewayClear) {
+      return "Light both causeway braziers so the drowned road stops reading like blind pressure and starts reading like a disciplined line toward Fenwatch.";
+    }
+    return "Drowned Causeway should now read as compressed Greyfen pressure: one defended stone line, one clear southward pull, and Fenwatch weight gathering just beyond view.";
+  }
+  if (state.currentScreen === "GF-06") {
+    if (!state.quest.memorialFlatsPathCleared) {
+      return "Burn the thorn-choked grave rows so the dry line through Memorial Flats reappears without turning the field into clutter.";
+    }
+    if (!state.quest.namelessStoneClueFound) {
+      return "Inspect the unfinished west graves and recover the clue fragment so the flats carry named loss instead of anonymous ruin.";
+    }
+    if (!state.rewards.memorialTombCollected) {
+      return "Sweep the raised west tomb pocket so Memorial Flats keeps one deliberate reward space inside all this neglect.";
+    }
+    return "Memorial Flats should now read as scale consequence: a clear path through neglected dead, with dignity still visible in what little was kept.";
+  }
   if (state.currentScreen === "GF-05") {
     if (!state.quest.falseMarkerRevealed) {
       return "Light both memorial braziers so the false monument stops reading like accepted history and starts exposing the lie beneath it.";
@@ -696,6 +725,15 @@ function drawBriar() {
       }
     }
   }
+
+  if (state.currentScreen === "GF-06") {
+    if (!state.quest.memorialFlatsPathCleared && screen.props.graveBriar) {
+      const { x, y, w } = screen.props.graveBriar;
+      for (let offset = 0; offset < w; offset += atlas.tileSize) {
+        atlas.drawSprite(ctx, "briar", x + offset, y);
+      }
+    }
+  }
 }
 
 function drawCache() {
@@ -738,6 +776,11 @@ function drawCache() {
   if (screen.props.dockCache) {
     const cache = screen.props.dockCache;
     atlas.drawSprite(ctx, state.rewards.ferrymanDockCacheCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
+  }
+
+  if (screen.props.tombCache) {
+    const cache = screen.props.tombCache;
+    atlas.drawSprite(ctx, state.rewards.memorialTombCollected ? "chestOpen" : "chestClosed", cache.x, cache.y);
   }
 
   if (screen.props.ledgeCache) {
@@ -901,6 +944,14 @@ function drawDebugOverlay() {
     lineA = `left:${state.quest.falseMarkerLeftLit} right:${state.quest.falseMarkerRightLit}`;
     lineB = `truth:${state.quest.falseMarkerRevealed} epitaph:${state.rewards.falseMarkerEpitaphRead}`;
   }
+  if (state.currentScreen === "GF-06") {
+    lineA = `path:${state.quest.memorialFlatsPathCleared} clue:${state.quest.namelessStoneClueFound}`;
+    lineB = `cache:${state.rewards.memorialTombCollected} flats:memorial`;
+  }
+  if (state.currentScreen === "GF-07") {
+    lineA = `left:${state.quest.causewayLeftLit} right:${state.quest.causewayRightLit}`;
+    lineB = `clear:${state.quest.causewayClear} path:causeway`;
+  }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
   drawPixelText(lineB, 14, 64);
@@ -991,6 +1042,12 @@ function getSolids() {
     if (!state.quest.greyfenDescentOpen && screen.props.southSeal) {
       solids.push({ ...screen.props.southSeal });
     }
+  }
+  if (state.currentScreen === "GF-06" && !state.quest.memorialFlatsPathCleared && screen.props.graveBriar) {
+    solids.push({ ...screen.props.graveBriar });
+  }
+  if (state.currentScreen === "GF-07" && !state.quest.causewayClear && screen.props.southSeal) {
+    solids.push({ ...screen.props.southSeal });
   }
   return solids;
 }
@@ -1746,6 +1803,139 @@ function getInteractionTargets() {
     return targets;
   }
 
+  if (state.currentScreen === "GF-06") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read raised tomb",
+      onInteract: () => showMessage("Raised Tomb", "Someone lifted this one memorial above the wet ground and finished the carving with care. That small act is what keeps the flats from feeling abandoned entirely.")
+    });
+
+    targets.push({
+      rect: screen.props.graveBriar,
+      label: state.quest.memorialFlatsPathCleared ? "Inspect cleared grave rows" : "Burn grave-row thorn",
+      onInteract: () => {
+        if (state.quest.memorialFlatsPathCleared) {
+          showMessage("Grave Rows", "The thorn is gone and the dry cut through the flats can be followed without trampling what little order remains.");
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The grave rows are sealed by the same black thorn now threading the kingdom's forgotten places.");
+          return;
+        }
+        state.quest.memorialFlatsPathCleared = true;
+        commitProgress("Route saved: Memorial Flats path cleared");
+        showMessage("Grave Rows", "The thorn curls back from the memorial stones and the dry line through the flats reappears. The field is still neglected, but no longer unreadable.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.clueGraves,
+      label: state.quest.namelessStoneClueFound ? "Inspect unfinished graves" : "Read unfinished graves",
+      onInteract: () => {
+        if (!state.quest.namelessStoneClueFound) {
+          state.quest.namelessStoneClueFound = true;
+          commitProgress("Clue saved: Nameless Stone fragment found");
+          showMessage("Unfinished Graves", "One stone bears only a rank mark and three scratched letters before the carving stops. Even the half-made names here carry more honor than the monument behind you.");
+          return;
+        }
+        showMessage("Unfinished Graves", "The unfinished stones tell the truth quietly: too many dead, too little time, and someone still trying not to let them vanish entirely.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.tombCache,
+      label: state.rewards.memorialTombCollected ? "Inspect tomb cache" : "Open tomb cache",
+      onInteract: () => {
+        if (!state.rewards.memorialTombCollected) {
+          state.rewards.memorialTombCollected = true;
+          commitProgress("Reward saved: Memorial tomb cache collected");
+          showMessage("Tomb Cache", "Inside rests a sealed votive strip and one intact name-ring kept dry in waxed cloth. The reward is small, but the raised tomb pocket proves someone fought neglect here with care.");
+          return;
+        }
+        showMessage("Tomb Cache", "The little tomb cache is empty now, but the west terrace still reads as a kept memorial instead of just another ruin perch.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: "Look back to False Marker",
+      onInteract: () => showMessage("North Road", "False Marker Knoll still stands behind you, but here the lie has spread into scale. The dead are no longer one stone. They are a field.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look south",
+      onInteract: () => showMessage("South Road", "The dry line continues into the Drowned Causeway, where Greyfen stops mourning in fields and starts compressing into defended stone.")
+    });
+
+    targets.push({
+      rect: screen.props.eastBreach,
+      label: "Inspect east breach",
+      onInteract: () => showMessage("East Breach", "A broken edge in the flats hints at older floodworks beyond. It reads as a later return line, not part of this first push south.")
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "GF-07") {
+    const makeCausewayBrazier = (rect, questKey, title) => ({
+      rect,
+      label: state.quest[questKey] ? `Inspect ${title.toLowerCase()}` : `Light ${title.toLowerCase()}`,
+      onInteract: () => {
+        if (state.quest[questKey]) {
+          showMessage(title, `${title} already burns through the wet haze. The causeway no longer feels blind where this fire reaches.`);
+          return;
+        }
+        if (!hasLanternOfDawn()) {
+          showMessage("Lantern Needed", "The causeway brazier needs sacred flame before the road through the mist can be trusted.");
+          return;
+        }
+        state.quest[questKey] = true;
+        commitProgress(`Route saved: ${title} lit`);
+        if (state.quest.causewayClear) {
+          showMessage(title, "The second flame answers and the lower causeway resolves into disciplined stone. Greyfen still grieves, but the road is no longer lost in it.");
+          return;
+        }
+        showMessage(title, `${title} catches and steadies. Half the causeway now feels read instead of guessed.`);
+      }
+    });
+
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read causeway stone",
+      onInteract: () => showMessage("Causeway Stone", "The inscription no longer asks travelers to remember the dead. It orders them to pass quietly and keep the line. Greyfen's grief is hardening into defended stone here.")
+    });
+
+    targets.push(makeCausewayBrazier(screen.props.leftBrazier, "causewayLeftLit", "Left Causeway Brazier"));
+    targets.push(makeCausewayBrazier(screen.props.rightBrazier, "causewayRightLit", "Right Causeway Brazier"));
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: "Look back to Memorial Flats",
+      onInteract: () => showMessage("North Road", "Memorial Flats still lies behind you in open neglect. Here the same dead are being forced into line by masonry, torchlight, and command.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: state.quest.causewayClear ? "Look south to Fenwatch" : "Fogbound lower causeway",
+      onInteract: () => {
+        if (!state.quest.causewayClear) {
+          showMessage("Lower Causeway", "The causeway drops into wet haze and broken footing. Answer both braziers first so the southern line becomes trustworthy.");
+          return;
+        }
+        showMessage("Lower Causeway", "The line holds now. Fenwatch gathers just beyond the visible road in chains, vaults, and bell-stone. `GF-10 Fenwatch Approach` is the next main-route screen after this passage.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.sideChain,
+      label: "Inspect side chain",
+      onInteract: () => showMessage("Side Chain", "A side chain hangs above deeper water at the causeway edge. It reads as later return infrastructure, not something this first southbound pass should depend on.")
+    });
+
+    return targets;
+  }
+
   if (state.currentScreen === "BM-02") {
     targets.push({
       rect: screen.props.landmark,
@@ -1999,7 +2189,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus eleven live production route screens, carrying the same atlas law from benchmark ground into Greyfen's first false monument warning with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus thirteen live production route screens, carrying the same atlas law from benchmark ground into Greyfen's drowned causeway with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -2009,7 +2199,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through eleven production screens into Greyfen's first false-monument warning under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through thirteen production screens into Greyfen's drowned causeway under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
