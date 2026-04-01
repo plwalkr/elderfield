@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.16-fc02";
+const BUILD_VERSION = "v0.3.17-fc03";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -141,7 +141,8 @@ function createDefaultSaveData() {
       causewayClear: false,
       fenwatchWinchCleared: false,
       hallNamesWitnessed: false,
-      echoAbandonmentWitnessed: false
+      echoAbandonmentWitnessed: false,
+      wardenTestimonyWitnessed: false
     },
     rewards: {
       watchCacheCollected: false,
@@ -453,6 +454,12 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "FC-03") {
+    if (!state.quest.wardenTestimonyWitnessed) {
+      return "Witness the Warden testimony so Fenwatch's accusation becomes proof without turning into spectacle.";
+    }
+    return "Warden Testimony should now read as proof chamber, not escalation: the Wardens are cleared, the deeper seal remains held, and the descent still moves by evidence.";
+  }
   if (state.currentScreen === "FC-02") {
     if (!state.quest.echoAbandonmentWitnessed) {
       return "Witness the abandonment echo so Fenwatch deepens through testimony, not puzzle escalation.";
@@ -994,6 +1001,10 @@ function drawDebugOverlay() {
     lineA = `echo:${state.quest.echoAbandonmentWitnessed} chamber:abandonment`;
     lineB = "path:second interior";
   }
+  if (state.currentScreen === "FC-03") {
+    lineA = `proof:${state.quest.wardenTestimonyWitnessed} chamber:testimony`;
+    lineB = "path:third interior";
+  }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
   drawPixelText(lineB, 14, 64);
@@ -1096,6 +1107,9 @@ function getSolids() {
   }
   if (state.currentScreen === "FC-01" && !state.quest.hallNamesWitnessed && screen.props.innerSeal) {
     solids.push({ ...screen.props.innerSeal });
+  }
+  if (state.currentScreen === "FC-02" && !state.quest.echoAbandonmentWitnessed && screen.props.northSeal) {
+    solids.push({ ...screen.props.northSeal });
   }
   return solids;
 }
@@ -2125,14 +2139,74 @@ function getInteractionTargets() {
 
     targets.push({
       rect: screen.props.northSeal,
-      label: "Inspect deeper seal",
-      onInteract: () => showMessage("Deeper Seal", "The next descent remains barred. The chamber has given you the plea and the order; deeper Fenwatch will have to answer with proof later.")
+      label: state.quest.echoAbandonmentWitnessed ? "Inspect opened testimony gate" : "Inspect deeper seal",
+      onInteract: () => {
+        if (!state.quest.echoAbandonmentWitnessed) {
+          showMessage("Deeper Seal", "The next descent remains barred. The chamber has given you the plea and the order; deeper Fenwatch will have to answer with proof later.");
+          return;
+        }
+        showMessage("Testimony Gate", "The deeper seal opens once the echo is witnessed. Fenwatch's descent is still controlled, but now it is leading toward proof instead of only grief.");
+      }
     });
 
     targets.push({
       rect: screen.props.southThreshold,
       label: "Look back to Hall of Names",
       onInteract: () => showMessage("South Threshold", "The Hall of Names behind you established scale. This chamber gives that scale a voice, which is why it can be smaller and still feel heavier.")
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: state.quest.echoAbandonmentWitnessed ? "Continue to Warden Testimony" : "North way sealed",
+      onInteract: () => {
+        if (!state.quest.echoAbandonmentWitnessed) {
+          showMessage("North Way", "The deeper chamber stays barred until the abandonment echo has actually been heard. Fenwatch is still descending by testimony, not by impatience.");
+          return;
+        }
+        showMessage("North Way", "Beyond this gate waits the first true proof chamber, where the Wardens' own testimony begins to answer the lie above.");
+      }
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "FC-03") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: state.quest.wardenTestimonyWitnessed ? "Read Warden testimony again" : "Witness Warden testimony",
+      onInteract: () => {
+        if (!state.quest.wardenTestimonyWitnessed) {
+          state.quest.wardenTestimonyWitnessed = true;
+          commitProgress("Lore saved: Warden testimony witnessed");
+          showMessage("Warden Testimony", "The preserved record is plain where the monuments above were not: the Wardens held the retreat line, guarded the seal, and died where they stood. They were blamed afterward because the truth reached too close to crown and temple alike.");
+          return;
+        }
+        showMessage("Warden Testimony", "The chamber does not need to shout. The proof holds because it is specific: duty assigned, line held, seal guarded, blame rewritten after death.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.leftRecess,
+      label: "Inspect west recess",
+      onInteract: () => showMessage("West Recess", "Wax drippings and old oath-cords lie hardened in the recess. This was a place of record and vow before it became a place of concealment.")
+    });
+
+    targets.push({
+      rect: screen.props.rightRecess,
+      label: "Inspect east recess",
+      onInteract: () => showMessage("East Recess", "The wall cut here carries a thin trickle of floodwater under the stones. Fenwatch's deeper mechanics are still present, but this room keeps them subordinate to the evidence itself.")
+    });
+
+    targets.push({
+      rect: screen.props.northSeal,
+      label: "Inspect deeper seal",
+      onInteract: () => showMessage("Deeper Seal", "The next descent remains held. Fenwatch has moved from names, to plea, to proof. Whatever lies deeper should only follow once that proof has properly landed.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look back to Echo of Abandonment",
+      onInteract: () => showMessage("South Threshold", "The chamber behind you gave grief a voice. This one gives it documentary force, which is why it must stay colder and more exact.")
     });
 
     return targets;
@@ -2391,7 +2465,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus sixteen live production screens, carrying the same atlas law from benchmark ground through Hall of Names into Fenwatch's Echo of Abandonment with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus seventeen live production screens, carrying the same atlas law from benchmark ground through Hall of Names and Echo of Abandonment into Fenwatch's Warden Testimony with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -2401,7 +2475,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through sixteen production screens into Fenwatch's Echo of Abandonment under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through seventeen production screens into Fenwatch's Warden Testimony under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
