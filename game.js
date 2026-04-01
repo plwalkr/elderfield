@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.15-fc01";
+const BUILD_VERSION = "v0.3.16-fc02";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -140,7 +140,8 @@ function createDefaultSaveData() {
       causewayRightLit: false,
       causewayClear: false,
       fenwatchWinchCleared: false,
-      hallNamesWitnessed: false
+      hallNamesWitnessed: false,
+      echoAbandonmentWitnessed: false
     },
     rewards: {
       watchCacheCollected: false,
@@ -452,11 +453,17 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "FC-02") {
+    if (!state.quest.echoAbandonmentWitnessed) {
+      return "Witness the abandonment echo so Fenwatch deepens through testimony, not puzzle escalation.";
+    }
+    return "Echo of Abandonment should now read as a deeper witness chamber: the plea is heard, the sealing order is understood, and the northward holdback remains deliberate.";
+  }
   if (state.currentScreen === "FC-01") {
     if (!state.quest.hallNamesWitnessed) {
       return "Read the register of names so Fenwatch begins with witness, not mechanism.";
     }
-    return "Hall of Names should now read as a disciplined witnessing space: named dead at the center, deeper Fenwatch held back beyond the sealed north gate.";
+    return "Hall of Names should now read as a disciplined witnessing space: named dead at the center, and the deeper chamber only opening once the names have actually been faced.";
   }
   if (state.currentScreen === "GF-10") {
     if (!state.quest.fenwatchWinchCleared) {
@@ -983,6 +990,10 @@ function drawDebugOverlay() {
     lineA = `witness:${state.quest.hallNamesWitnessed} hall:names`;
     lineB = "path:first interior";
   }
+  if (state.currentScreen === "FC-02") {
+    lineA = `echo:${state.quest.echoAbandonmentWitnessed} chamber:abandonment`;
+    lineB = "path:second interior";
+  }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
   drawPixelText(lineB, 14, 64);
@@ -1082,6 +1093,9 @@ function getSolids() {
   }
   if (state.currentScreen === "GF-10" && !state.quest.fenwatchWinchCleared && screen.props.doorSeal) {
     solids.push({ ...screen.props.doorSeal });
+  }
+  if (state.currentScreen === "FC-01" && !state.quest.hallNamesWitnessed && screen.props.innerSeal) {
+    solids.push({ ...screen.props.innerSeal });
   }
   return solids;
 }
@@ -2051,14 +2065,74 @@ function getInteractionTargets() {
 
     targets.push({
       rect: screen.props.innerSeal,
-      label: "Inspect sealed inner gate",
-      onInteract: () => showMessage("Inner Seal", "The deeper crypt is held behind a disciplined stone seal. Fenwatch is careful here: first witness, then descent.")
+      label: state.quest.hallNamesWitnessed ? "Inspect opened inner gate" : "Inspect sealed inner gate",
+      onInteract: () => {
+        if (!state.quest.hallNamesWitnessed) {
+          showMessage("Inner Seal", "The deeper crypt is held behind a disciplined stone seal. Fenwatch is careful here: first witness, then descent.");
+          return;
+        }
+        showMessage("Inner Seal", "Once the names are faced, the inner seal yields just enough to continue. Fenwatch is still controlling the descent, but no longer refusing it.");
+      }
     });
 
     targets.push({
       rect: screen.props.southThreshold,
       label: "Look back to Fenwatch Approach",
       onInteract: () => showMessage("South Threshold", "The bell, chain, and gate above now feel distant. Inside Fenwatch, accusation gives way to names, and that change in pressure is exactly what this first room must protect.")
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: state.quest.hallNamesWitnessed ? "Continue into deeper Fenwatch" : "North way sealed",
+      onInteract: () => {
+        if (!state.quest.hallNamesWitnessed) {
+          showMessage("North Way", "The room will not let you continue until the register itself has been witnessed. Fenwatch's first law is reverence, not momentum.");
+          return;
+        }
+        showMessage("North Way", "Beyond the first hall, another chamber holds the voices of those who asked the dead be named properly before the vault was sealed.");
+      }
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "FC-02") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: state.quest.echoAbandonmentWitnessed ? "Hear echo stone again" : "Witness abandonment echo",
+      onInteract: () => {
+        if (!state.quest.echoAbandonmentWitnessed) {
+          state.quest.echoAbandonmentWitnessed = true;
+          commitProgress("Lore saved: Echo of Abandonment witnessed");
+          showMessage("Echo of Abandonment", "A survivor's voice breaks across the chamber: name them before you seal them, let the families know where they lie. Another voice, colder and higher, answers that the vault closes now and the record will be corrected later. The later never came.");
+          return;
+        }
+        showMessage("Echo of Abandonment", "The echo does not accuse with spectacle. It accuses with procedure: one plea for names, one command to seal, and all the damage hidden inside that gap.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.leftAlcove,
+      label: "Inspect west alcove",
+      onInteract: () => showMessage("West Alcove", "Coins and wax traces still cling to the stone lip. People came here after the sealing order, trying to keep private acts of naming alive where the official record failed.")
+    });
+
+    targets.push({
+      rect: screen.props.rightAlcove,
+      label: "Inspect east alcove",
+      onInteract: () => showMessage("East Alcove", "A narrow water cut slips under the chamber wall and vanishes north. The first hint of Fenwatch's flood logic is here, but it stays subordinate to the testimony in this room.")
+    });
+
+    targets.push({
+      rect: screen.props.northSeal,
+      label: "Inspect deeper seal",
+      onInteract: () => showMessage("Deeper Seal", "The next descent remains barred. The chamber has given you the plea and the order; deeper Fenwatch will have to answer with proof later.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look back to Hall of Names",
+      onInteract: () => showMessage("South Threshold", "The Hall of Names behind you established scale. This chamber gives that scale a voice, which is why it can be smaller and still feel heavier.")
     });
 
     return targets;
@@ -2317,7 +2391,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus fifteen live production screens, carrying the same atlas law from benchmark ground into Fenwatch's Hall of Names with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus sixteen live production screens, carrying the same atlas law from benchmark ground through Hall of Names into Fenwatch's Echo of Abandonment with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -2327,7 +2401,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through fifteen production screens into Fenwatch's Hall of Names under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through sixteen production screens into Fenwatch's Echo of Abandonment under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
