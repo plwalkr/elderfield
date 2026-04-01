@@ -1,7 +1,7 @@
 (() => {
   const TILE = 16;
   const COLS = 8;
-  const ROWS = 5;
+  const ROWS = 6;
 
   const palette = {
     grassDark: "#35512b",
@@ -29,6 +29,9 @@
     stoneDark: "#4a4946",
     stoneMid: "#716f69",
     stoneLight: "#a6a39a",
+    waterDark: "#24313a",
+    waterMid: "#355062",
+    waterLight: "#58738a",
     rune: "#d5ca8e",
     briarDark: "#48252a",
     briarMid: "#6e353d",
@@ -255,6 +258,65 @@
     dots(baseX, baseY, [[7, 8, 2, 6]], palette.barkDark);
   }
 
+  function drawMemorialFloor(baseX, baseY, variant) {
+    block(baseX, baseY, 0, 0, TILE, TILE, palette.stoneMid);
+    dots(baseX, baseY, [[0, 0, TILE, 1], [0, 15, TILE, 1], [0, 0, 1, TILE], [15, 0, 1, TILE]], palette.stoneDark);
+    dots(baseX, baseY, [[1, 4, 14, 1], [1, 9, 14, 1], [1, 13, 14, 1]], palette.stoneLight);
+    if (variant === 0) {
+      dots(baseX, baseY, [[3, 2, 4, 1], [9, 6, 3, 1], [4, 11, 2, 1], [11, 12, 2, 1]], palette.stoneDark);
+      dots(baseX, baseY, [[7, 3], [8, 8], [6, 12]], palette.rune);
+    } else {
+      dots(baseX, baseY, [[2, 6, 3, 1], [10, 3, 3, 1], [6, 11, 4, 1], [3, 14, 5, 1]], palette.stoneDark);
+      dots(baseX, baseY, [[5, 5], [11, 8], [9, 12]], palette.rune);
+    }
+  }
+
+  function drawNameWall(baseX, baseY, variant) {
+    block(baseX, baseY, 0, 0, TILE, TILE, palette.stoneDark);
+    block(baseX, baseY, 1, 1, 14, 14, palette.stoneMid);
+    dots(baseX, baseY, [[2, 2, 12, 2], [2, 12, 12, 2], [2, 4, 1, 8], [13, 4, 1, 8]], palette.stoneLight);
+    if (variant === 0) {
+      dots(baseX, baseY, [[4, 5, 7, 1], [4, 7, 6, 1], [4, 9, 7, 1], [4, 11, 5, 1]], palette.ink);
+      dots(baseX, baseY, [[11, 5, 1, 7]], palette.rune);
+    } else {
+      dots(baseX, baseY, [[5, 5, 6, 1], [4, 7, 7, 1], [5, 9, 6, 1], [4, 11, 7, 1]], palette.ink);
+      dots(baseX, baseY, [[4, 5, 1, 7]], palette.rune);
+    }
+  }
+
+  function drawCryptWater(baseX, baseY) {
+    block(baseX, baseY, 0, 0, TILE, TILE, palette.waterDark);
+    dots(baseX, baseY, [[0, 2, TILE, 2], [0, 10, TILE, 1]], palette.waterMid);
+    dots(baseX, baseY, [[2, 4, 5, 1], [9, 6, 4, 1], [5, 12, 6, 1]], palette.waterLight);
+    dots(baseX, baseY, [[1, 0, 14, 1], [0, 15, TILE, 1]], palette.stoneDark);
+    dots(baseX, baseY, [[7, 3], [10, 11]], palette.rune);
+  }
+
+  function drawCryptWall(baseX, baseY) {
+    block(baseX, baseY, 0, 0, TILE, TILE, palette.stoneDark);
+    block(baseX, baseY, 1, 1, 14, 14, palette.stoneMid);
+    dots(baseX, baseY, [[2, 2, 12, 2], [2, 12, 12, 2], [2, 4, 12, 1]], palette.stoneLight);
+    dots(baseX, baseY, [[3, 6, 4, 2], [9, 7, 3, 2], [5, 10, 6, 2]], palette.stoneDark);
+    dots(baseX, baseY, [[4, 14, 8, 1]], palette.ink);
+  }
+
+  function drawSealGate(baseX, baseY) {
+    block(baseX, baseY, 0, 0, TILE, TILE, palette.stoneDark);
+    block(baseX, baseY, 1, 1, 14, 14, palette.stoneMid);
+    dots(baseX, baseY, [[2, 2, 12, 2], [2, 12, 12, 2], [2, 4, 1, 8], [13, 4, 1, 8]], palette.stoneLight);
+    dots(baseX, baseY, [[5, 4, 1, 9], [8, 4, 1, 9], [11, 4, 1, 9]], palette.metalDark);
+    dots(baseX, baseY, [[4, 5, 9, 1], [4, 9, 9, 1]], palette.rune);
+  }
+
+  function drawCandleStand(baseX, baseY) {
+    block(baseX, baseY, 6, 2, 4, 3, palette.metalDark);
+    block(baseX, baseY, 5, 5, 6, 2, palette.metalLight);
+    block(baseX, baseY, 7, 7, 2, 5, palette.metalDark);
+    block(baseX, baseY, 6, 12, 4, 2, palette.stoneDark);
+    dots(baseX, baseY, [[7, 1, 2, 1], [6, 2, 4, 1], [5, 3, 6, 2]], palette.rune);
+    dots(baseX, baseY, [[7, 5, 2, 1], [7, 9, 2, 2]], palette.roadLight);
+  }
+
   function drawPlayer(baseX, baseY, dir) {
     dots(baseX, baseY, [[6, 2, 4, 4]], palette.skin);
     dots(baseX, baseY, [[5, 1, 6, 2]], palette.clothGreen);
@@ -335,6 +397,14 @@
   defineSprite("enemyHound", 5, 4, drawHound);
   defineSprite("slashH", 6, 4, (x, y) => drawSlash(x, y, "h"));
   defineSprite("slashV", 7, 4, (x, y) => drawSlash(x, y, "v"));
+  defineSprite("memorialFloorA", 0, 5, (x, y) => drawMemorialFloor(x, y, 0));
+  defineSprite("memorialFloorB", 1, 5, (x, y) => drawMemorialFloor(x, y, 1));
+  defineSprite("nameWallA", 2, 5, (x, y) => drawNameWall(x, y, 0));
+  defineSprite("nameWallB", 3, 5, (x, y) => drawNameWall(x, y, 1));
+  defineSprite("cryptWater", 4, 5, drawCryptWater);
+  defineSprite("cryptWall", 5, 5, drawCryptWall);
+  defineSprite("sealGate", 6, 5, drawSealGate);
+  defineSprite("candleStand", 7, 5, drawCandleStand);
 
   function drawSprite(ctx, name, x, y, options = {}) {
     const sprite = sprites[name];
