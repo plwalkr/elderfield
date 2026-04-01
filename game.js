@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.13-gf10";
+  const BUILD_VERSION = "v0.3.14-fenwatch-visual";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
