@@ -22,6 +22,23 @@
     return { tiles, place };
   }
 
+  function fillMemorialFloor() {
+    const tiles = [];
+    const variants = ["memorialFloorA", "memorialFloorB"];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let ty = 0; ty < 12; ty += 1) {
+      for (let tx = 0; tx < 20; tx += 1) {
+        place(variants[(tx + ty) % variants.length], tx, ty);
+      }
+    }
+
+    return { tiles, place };
+  }
+
   function buildBm01Ground() {
     const { tiles, place } = fillGrass();
     const roadTiles = [
@@ -1288,6 +1305,135 @@
     return tiles;
   }
 
+  function buildFc01Ground() {
+    const { tiles, place } = fillMemorialFloor();
+
+    for (let ty = 1; ty <= 9; ty += 1) {
+      place("cryptWater", 1, ty);
+      place("cryptWater", 2, ty);
+      place("cryptWater", 17, ty);
+      place("cryptWater", 18, ty);
+    }
+
+    place("stairs", 9, 10);
+    place("stairs", 10, 10);
+
+    return tiles;
+  }
+
+  function buildFc01Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 19; tx += 1) {
+      place("cryptWall", tx, 0);
+    }
+
+    for (let ty = 1; ty <= 10; ty += 1) {
+      place("cryptWall", 0, ty);
+      place("cryptWall", 19, ty);
+    }
+
+    place("cryptWall", 8, 1);
+    place("sealGate", 9, 1);
+    place("sealGate", 10, 1);
+    place("cryptWall", 11, 1);
+
+    for (let ty = 2; ty <= 7; ty += 1) {
+      place(ty % 2 === 0 ? "nameWallA" : "nameWallB", 4, ty);
+      place(ty % 2 === 0 ? "nameWallB" : "nameWallA", 5, ty);
+      place(ty % 2 === 0 ? "nameWallB" : "nameWallA", 14, ty);
+      place(ty % 2 === 0 ? "nameWallA" : "nameWallB", 15, ty);
+    }
+
+    place("nameWallA", 9, 4);
+    place("nameWallB", 10, 4);
+    place("candleStand", 8, 5);
+    place("nameWallB", 9, 5);
+    place("nameWallA", 10, 5);
+    place("candleStand", 11, 5);
+    place("nameWallA", 9, 6);
+    place("nameWallB", 10, 6);
+
+    place("cryptWall", 3, 3);
+    place("cryptWall", 3, 7);
+    place("cryptWall", 16, 3);
+    place("cryptWall", 16, 7);
+
+    place("candleStand", 8, 9);
+    place("candleStand", 11, 9);
+
+    return tiles;
+  }
+
+  function buildFc02Ground() {
+    const { tiles, place } = fillMemorialFloor();
+
+    for (let ty = 2; ty <= 8; ty += 1) {
+      place("cryptWater", 1, ty);
+      place("cryptWater", 2, ty);
+      place("cryptWater", 17, ty);
+      place("cryptWater", 18, ty);
+    }
+
+    place("stairs", 9, 10);
+    place("stairs", 10, 10);
+
+    return tiles;
+  }
+
+  function buildFc02Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 19; tx += 1) {
+      place("cryptWall", tx, 0);
+    }
+
+    for (let ty = 1; ty <= 10; ty += 1) {
+      place("cryptWall", 0, ty);
+      place("cryptWall", 19, ty);
+    }
+
+    place("cryptWall", 8, 1);
+    place("sealGate", 9, 1);
+    place("sealGate", 10, 1);
+    place("cryptWall", 11, 1);
+
+    place("cryptWall", 3, 3);
+    place("nameWallA", 4, 3);
+    place("nameWallB", 4, 4);
+    place("cryptWall", 3, 7);
+    place("nameWallB", 4, 7);
+    place("nameWallA", 4, 8);
+
+    place("cryptWall", 16, 3);
+    place("nameWallB", 15, 3);
+    place("nameWallA", 15, 4);
+    place("cryptWall", 16, 7);
+    place("nameWallA", 15, 7);
+    place("nameWallB", 15, 8);
+
+    place("cryptWall", 8, 4);
+    place("nameWallA", 9, 4);
+    place("nameWallB", 10, 4);
+    place("cryptWall", 11, 4);
+    place("candleStand", 8, 5);
+    place("nameWallB", 9, 5);
+    place("nameWallA", 10, 5);
+    place("candleStand", 11, 5);
+    place("candleStand", 8, 7);
+    place("candleStand", 11, 7);
+
+    return tiles;
+  }
+
   const bm01 = {
     id: "BM-01",
     name: "Warden's Rise",
@@ -2214,7 +2360,8 @@
       westReturnHint: { x: 48, y: 112, w: 16, h: 16 }
     },
     transitions: [
-      { rect: rect(136, 0, 48, 8), to: "GF-07", spawn: "south" }
+      { rect: rect(136, 0, 48, 8), to: "GF-07", spawn: "south" },
+      { rect: rect(136, 184, 48, 8), to: "FC-01", spawn: "south" }
     ],
     enemySpawns: [
       {
@@ -2253,6 +2400,83 @@
     ]
   };
 
+  const fc01 = {
+    id: "FC-01",
+    name: "Hall of Names",
+    region: "Fenwatch Catacombs",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 154, y: 152 },
+      south: { x: 154, y: 152 }
+    },
+    layers: {
+      ground: buildFc01Ground(),
+      mid: buildFc01Mid(),
+      fore: []
+    },
+    props: {
+      landmark: { x: 144, y: 64, w: 32, h: 48 },
+      leftRegister: { x: 64, y: 32, w: 32, h: 96 },
+      rightRegister: { x: 224, y: 32, w: 32, h: 96 },
+      innerSeal: { x: 144, y: 16, w: 32, h: 32 },
+      northThreshold: { x: 136, y: 0, w: 48, h: 24 },
+      southThreshold: { x: 136, y: 160, w: 48, h: 16 }
+    },
+    transitions: [
+      { rect: rect(136, 0, 48, 8), to: "FC-02", spawn: "south" },
+      { rect: rect(136, 184, 48, 8), to: "GF-10", spawn: "south" }
+    ],
+    enemySpawns: [],
+    baseSolids: [
+      rect(0, 0, 136, 16),
+      rect(184, 0, 136, 16),
+      rect(0, 16, 16, 176),
+      rect(304, 16, 16, 176),
+      rect(32, 16, 32, 144),
+      rect(256, 16, 32, 144),
+      rect(64, 32, 32, 96),
+      rect(224, 32, 32, 96),
+      rect(144, 64, 32, 48)
+    ]
+  };
+
+  const fc02 = {
+    id: "FC-02",
+    name: "Echo of Abandonment",
+    region: "Fenwatch Catacombs",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 154, y: 152 },
+      south: { x: 154, y: 152 }
+    },
+    layers: {
+      ground: buildFc02Ground(),
+      mid: buildFc02Mid(),
+      fore: []
+    },
+    props: {
+      landmark: { x: 144, y: 64, w: 32, h: 32 },
+      leftAlcove: { x: 64, y: 64, w: 32, h: 48 },
+      rightAlcove: { x: 224, y: 64, w: 32, h: 48 },
+      northSeal: { x: 144, y: 16, w: 32, h: 32 },
+      southThreshold: { x: 136, y: 160, w: 48, h: 16 }
+    },
+    transitions: [
+      { rect: rect(136, 184, 48, 8), to: "FC-01", spawn: "south" }
+    ],
+    enemySpawns: [],
+    baseSolids: [
+      rect(0, 0, 320, 16),
+      rect(0, 16, 16, 176),
+      rect(304, 16, 16, 176),
+      rect(32, 16, 32, 128),
+      rect(256, 16, 32, 128),
+      rect(144, 16, 32, 32),
+      rect(128, 64, 16, 32),
+      rect(176, 64, 16, 32)
+    ]
+  };
+
   window.ElderfieldBenchmarkScreen = bm01;
   window.ElderfieldBenchmarkScreens = {
     [bm01.id]: bm01,
@@ -2269,7 +2493,9 @@
     [gf02.id]: gf02,
     [gf05.id]: gf05,
     [gf06.id]: gf06,
-    [gf07.id]: gf07,
-    [gf10.id]: gf10
-  };
-})();
+      [gf07.id]: gf07,
+      [gf10.id]: gf10,
+      [fc01.id]: fc01,
+      [fc02.id]: fc02
+    };
+  })();
