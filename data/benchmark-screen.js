@@ -1434,6 +1434,73 @@
     return tiles;
   }
 
+  function buildFc03Ground() {
+    const { tiles, place } = fillMemorialFloor();
+
+    for (let ty = 3; ty <= 7; ty += 1) {
+      place("cryptWater", 1, ty);
+      place("cryptWater", 2, ty);
+      place("cryptWater", 17, ty);
+      place("cryptWater", 18, ty);
+    }
+
+    place("stairs", 9, 10);
+    place("stairs", 10, 10);
+
+    return tiles;
+  }
+
+  function buildFc03Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 19; tx += 1) {
+      place("cryptWall", tx, 0);
+    }
+
+    for (let ty = 1; ty <= 10; ty += 1) {
+      place("cryptWall", 0, ty);
+      place("cryptWall", 19, ty);
+    }
+
+    place("cryptWall", 8, 1);
+    place("sealGate", 9, 1);
+    place("sealGate", 10, 1);
+    place("cryptWall", 11, 1);
+
+    place("cryptWall", 3, 4);
+    place("nameWallA", 4, 4);
+    place("nameWallB", 4, 5);
+    place("candleStand", 5, 5);
+    place("cryptWall", 3, 7);
+
+    place("cryptWall", 16, 4);
+    place("nameWallB", 15, 4);
+    place("nameWallA", 15, 5);
+    place("candleStand", 14, 5);
+    place("cryptWall", 16, 7);
+
+    place("cryptWall", 8, 3);
+    place("nameWallA", 9, 3);
+    place("nameWallB", 10, 3);
+    place("cryptWall", 11, 3);
+    place("candleStand", 8, 4);
+    place("nameWallB", 9, 4);
+    place("nameWallA", 10, 4);
+    place("candleStand", 11, 4);
+    place("nameWallA", 9, 5);
+    place("nameWallB", 10, 5);
+    place("nameWallB", 9, 6);
+    place("nameWallA", 10, 6);
+    place("candleStand", 8, 7);
+    place("candleStand", 11, 7);
+
+    return tiles;
+  }
+
   const bm01 = {
     id: "BM-01",
     name: "Warden's Rise",
@@ -2459,10 +2526,49 @@
       leftAlcove: { x: 64, y: 64, w: 32, h: 48 },
       rightAlcove: { x: 224, y: 64, w: 32, h: 48 },
       northSeal: { x: 144, y: 16, w: 32, h: 32 },
+      northThreshold: { x: 136, y: 0, w: 48, h: 24 },
       southThreshold: { x: 136, y: 160, w: 48, h: 16 }
     },
     transitions: [
+      { rect: rect(136, 0, 48, 8), to: "FC-03", spawn: "south" },
       { rect: rect(136, 184, 48, 8), to: "FC-01", spawn: "south" }
+    ],
+    enemySpawns: [],
+    baseSolids: [
+      rect(0, 0, 136, 16),
+      rect(184, 0, 136, 16),
+      rect(0, 16, 16, 176),
+      rect(304, 16, 16, 176),
+      rect(32, 16, 32, 128),
+      rect(256, 16, 32, 128),
+      rect(128, 64, 16, 32),
+      rect(176, 64, 16, 32)
+    ]
+  };
+
+  const fc03 = {
+    id: "FC-03",
+    name: "Warden Testimony",
+    region: "Fenwatch Catacombs",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 154, y: 152 },
+      south: { x: 154, y: 152 }
+    },
+    layers: {
+      ground: buildFc03Ground(),
+      mid: buildFc03Mid(),
+      fore: []
+    },
+    props: {
+      landmark: { x: 144, y: 48, w: 32, h: 64 },
+      leftRecess: { x: 64, y: 64, w: 32, h: 48 },
+      rightRecess: { x: 224, y: 64, w: 32, h: 48 },
+      northSeal: { x: 144, y: 16, w: 32, h: 32 },
+      southThreshold: { x: 136, y: 160, w: 48, h: 16 }
+    },
+    transitions: [
+      { rect: rect(136, 184, 48, 8), to: "FC-02", spawn: "south" }
     ],
     enemySpawns: [],
     baseSolids: [
@@ -2472,8 +2578,8 @@
       rect(32, 16, 32, 128),
       rect(256, 16, 32, 128),
       rect(144, 16, 32, 32),
-      rect(128, 64, 16, 32),
-      rect(176, 64, 16, 32)
+      rect(128, 48, 16, 64),
+      rect(176, 48, 16, 64)
     ]
   };
 
@@ -2493,9 +2599,10 @@
     [gf02.id]: gf02,
     [gf05.id]: gf05,
     [gf06.id]: gf06,
-      [gf07.id]: gf07,
-      [gf10.id]: gf10,
-      [fc01.id]: fc01,
-      [fc02.id]: fc02
-    };
-  })();
+        [gf07.id]: gf07,
+        [gf10.id]: gf10,
+        [fc01.id]: fc01,
+        [fc02.id]: fc02,
+        [fc03.id]: fc03
+      };
+    })();
