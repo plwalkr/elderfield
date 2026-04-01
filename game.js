@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-  const BUILD_VERSION = "v0.3.14-fenwatch-visual";
+const BUILD_VERSION = "v0.3.15-fc01";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -139,7 +139,8 @@ function createDefaultSaveData() {
       causewayLeftLit: false,
       causewayRightLit: false,
       causewayClear: false,
-      fenwatchWinchCleared: false
+      fenwatchWinchCleared: false,
+      hallNamesWitnessed: false
     },
     rewards: {
       watchCacheCollected: false,
@@ -451,11 +452,17 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "FC-01") {
+    if (!state.quest.hallNamesWitnessed) {
+      return "Read the register of names so Fenwatch begins with witness, not mechanism.";
+    }
+    return "Hall of Names should now read as a disciplined witnessing space: named dead at the center, deeper Fenwatch held back beyond the sealed north gate.";
+  }
   if (state.currentScreen === "GF-10") {
     if (!state.quest.fenwatchWinchCleared) {
       return "Burn the thorn-choked chain winch so Fenwatch stops reading like distant accusation and becomes a true dungeon threshold.";
     }
-    return "Fenwatch Approach should now read as final overworld pressure: bell, chain, vault, and gate all converging into one accusation against the kingdom.";
+    return "The catacomb door is open. Step into Hall of Names so Fenwatch begins with witness instead of spectacle.";
   }
   if (state.currentScreen === "GF-07") {
     if (!state.quest.causewayClear) {
@@ -971,6 +978,10 @@ function drawDebugOverlay() {
   if (state.currentScreen === "GF-10") {
     lineA = `winch:${state.quest.fenwatchWinchCleared} gate:fenwatch`;
     lineB = "path:final exterior";
+  }
+  if (state.currentScreen === "FC-01") {
+    lineA = `witness:${state.quest.hallNamesWitnessed} hall:names`;
+    lineB = "path:first interior";
   }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
@@ -1980,7 +1991,7 @@ function getInteractionTargets() {
         }
         state.quest.fenwatchWinchCleared = true;
         commitProgress("Route saved: Fenwatch chain winch cleared");
-        showMessage("Chain Winch", "The thorn burns back from the chain housing and the gate mouth answers with a low iron groan. Fenwatch is open now, even if the catacombs below remain for the next pass.");
+        showMessage("Chain Winch", "The thorn burns back from the chain housing and the gate mouth answers with a low iron groan. The Hall of Names lies open below, and Fenwatch can finally begin as witness instead of rumor.");
       }
     });
 
@@ -1992,13 +2003,13 @@ function getInteractionTargets() {
 
     targets.push({
       rect: screen.props.southThreshold,
-      label: state.quest.fenwatchWinchCleared ? "Stand at the catacomb door" : "Catacomb door sealed",
+      label: state.quest.fenwatchWinchCleared ? "Enter Hall of Names" : "Catacomb door sealed",
       onInteract: () => {
         if (!state.quest.fenwatchWinchCleared) {
           showMessage("Catacomb Door", "The lower door remains bound by the jammed chain works. Clear the winch first so the approach can finish becoming a real destination.");
           return;
         }
-        showMessage("Catacomb Door", "The catacomb door stands ready below the bell stone and vault mouth. This overworld pass stops here on purpose: Fenwatch Catacombs should begin as its own deliberate dungeon slice.");
+        showMessage("Catacomb Door", "The door stands open now. Beyond it is the Hall of Names: the first place in Fenwatch where the dead are encountered directly instead of through marsh signs, bells, and accusation.");
       }
     });
 
@@ -2006,6 +2017,48 @@ function getInteractionTargets() {
       rect: screen.props.westReturnHint,
       label: "Inspect west chain post",
       onInteract: () => showMessage("West Chain Post", "A return chain post sits half-submerged off the west edge. It promises a later Greyfen shortcut without pulling focus away from Fenwatch itself.")
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "FC-01") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: state.quest.hallNamesWitnessed ? "Read memorial register" : "Witness memorial register",
+      onInteract: () => {
+        if (!state.quest.hallNamesWitnessed) {
+          state.quest.hallNamesWitnessed = true;
+          commitProgress("Lore saved: Hall of Names witnessed");
+          showMessage("Hall of Names", "Rows of names crowd the stone, then thin into scratches, gaps, and unfinished cuts. Fenwatch does not begin with a mechanism here. It begins by making you face how many dead were nearly left unnamed.");
+          return;
+        }
+        showMessage("Hall of Names", "Once the register is read, the whole room changes weight. The hall is not decoration. It is a ledger of grief the kingdom tried to bury under cleaner stories.");
+      }
+    });
+
+    targets.push({
+      rect: screen.props.leftRegister,
+      label: "Inspect west wall names",
+      onInteract: () => showMessage("West Name Wall", "These carvings are cramped but careful. Families, ferrymen, road-keepers, Wardens. Even here, someone still tried to keep the dead in relation to one another.")
+    });
+
+    targets.push({
+      rect: screen.props.rightRegister,
+      label: "Inspect east wall names",
+      onInteract: () => showMessage("East Name Wall", "Whole lines were never finished. In a few places the last cuts stop mid-letter, as if the hall itself remembers the moment duty gave way to sealing and silence.")
+    });
+
+    targets.push({
+      rect: screen.props.innerSeal,
+      label: "Inspect sealed inner gate",
+      onInteract: () => showMessage("Inner Seal", "The deeper crypt is held behind a disciplined stone seal. Fenwatch is careful here: first witness, then descent.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look back to Fenwatch Approach",
+      onInteract: () => showMessage("South Threshold", "The bell, chain, and gate above now feel distant. Inside Fenwatch, accusation gives way to names, and that change in pressure is exactly what this first room must protect.")
     });
 
     return targets;
@@ -2264,7 +2317,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus fourteen live production route screens, carrying the same atlas law from benchmark ground to Fenwatch's outer gate with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus fifteen live production screens, carrying the same atlas law from benchmark ground into Fenwatch's Hall of Names with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -2274,7 +2327,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through fourteen production screens to Fenwatch's outer gate under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through fifteen production screens into Fenwatch's Hall of Names under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
