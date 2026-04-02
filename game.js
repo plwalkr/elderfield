@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.17-fc03";
+const BUILD_VERSION = "v0.3.18-fc04-shell";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -454,11 +454,14 @@ function renderInventory() {
 }
 
 function objectiveText() {
+  if (state.currentScreen === "FC-04") {
+    return "Bell-Mourned Marshal Chamber should now read as consequence chamber: the proof has taken form, but combat, reward, and spectacle all remain deliberately held back.";
+  }
   if (state.currentScreen === "FC-03") {
     if (!state.quest.wardenTestimonyWitnessed) {
       return "Witness the Warden testimony so Fenwatch's accusation becomes proof without turning into spectacle.";
     }
-    return "Warden Testimony should now read as proof chamber, not escalation: the Wardens are cleared, the deeper seal remains held, and the descent still moves by evidence.";
+    return "Warden Testimony should now read as proof chamber, not escalation: the Wardens are cleared, and the north gate should now open into consequence without turning Fenwatch into a boss arena.";
   }
   if (state.currentScreen === "FC-02") {
     if (!state.quest.echoAbandonmentWitnessed) {
@@ -1005,6 +1008,10 @@ function drawDebugOverlay() {
     lineA = `proof:${state.quest.wardenTestimonyWitnessed} chamber:testimony`;
     lineB = "path:third interior";
   }
+  if (state.currentScreen === "FC-04") {
+    lineA = "shell:true chamber:marshal";
+    lineB = "path:boss-side consequence";
+  }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
   drawPixelText(lineB, 14, 64);
@@ -1109,6 +1116,9 @@ function getSolids() {
     solids.push({ ...screen.props.innerSeal });
   }
   if (state.currentScreen === "FC-02" && !state.quest.echoAbandonmentWitnessed && screen.props.northSeal) {
+    solids.push({ ...screen.props.northSeal });
+  }
+  if (state.currentScreen === "FC-03" && !state.quest.wardenTestimonyWitnessed && screen.props.northSeal) {
     solids.push({ ...screen.props.northSeal });
   }
   return solids;
@@ -2199,14 +2209,66 @@ function getInteractionTargets() {
 
     targets.push({
       rect: screen.props.northSeal,
-      label: "Inspect deeper seal",
-      onInteract: () => showMessage("Deeper Seal", "The next descent remains held. Fenwatch has moved from names, to plea, to proof. Whatever lies deeper should only follow once that proof has properly landed.")
+      label: state.quest.wardenTestimonyWitnessed ? "Inspect opened marshal gate" : "Inspect deeper seal",
+      onInteract: () => {
+        if (!state.quest.wardenTestimonyWitnessed) {
+          showMessage("Deeper Seal", "The next descent remains held. Fenwatch has moved from names, to plea, to proof. Whatever lies deeper should only follow once that proof has properly landed.");
+          return;
+        }
+        showMessage("Marshal Gate", "Once the testimony is faced, the seal yields just enough to admit the chamber beyond. Fenwatch is no longer asking for proof. It is forcing consequence into view.");
+      }
     });
 
     targets.push({
       rect: screen.props.southThreshold,
       label: "Look back to Echo of Abandonment",
       onInteract: () => showMessage("South Threshold", "The chamber behind you gave grief a voice. This one gives it documentary force, which is why it must stay colder and more exact.")
+    });
+
+    targets.push({
+      rect: screen.props.northThreshold,
+      label: state.quest.wardenTestimonyWitnessed ? "Continue to Bell-Mourned chamber" : "North way sealed",
+      onInteract: () => {
+        if (!state.quest.wardenTestimonyWitnessed) {
+          showMessage("North Way", "Fenwatch still refuses the deeper chamber until the Warden testimony has actually been witnessed. Proof has to land before consequence is allowed to stand before you.");
+          return;
+        }
+        showMessage("North Way", "Beyond this gate the proof stops being documentary and becomes embodied burden. The next chamber should read as consequence, not spectacle.");
+      }
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "FC-04") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Inspect Bell-Mourned marshal",
+      onInteract: () => showMessage("Bell-Mourned Marshal", "What stands at the center is not a clean monument and not yet a boss performance. Record, armor, chain, and burden have been forced into one violated memorial mass. Proof has finally taken form, and it is terrible precisely because the chamber still refuses theatrics.")
+    });
+
+    targets.push({
+      rect: screen.props.leftRecess,
+      label: "Inspect west oath recess",
+      onInteract: () => showMessage("West Oath Recess", "Broken oath cords and command seals have been pressed into the recess stone. The chamber keeps reminding you that this was once a place of sworn duty before it became a place of accusation.")
+    });
+
+    targets.push({
+      rect: screen.props.rightScar,
+      label: "Inspect east flood scar",
+      onInteract: () => showMessage("East Flood Scar", "The flood mark is low, controlled, and ugly. Even here the water remains subordinate to the chamber's human crime. It records damage without taking the room away from the dead it was built to hold.")
+    });
+
+    targets.push({
+      rect: screen.props.northScar,
+      label: "Inspect scarred inner seal",
+      onInteract: () => showMessage("Scarred Seal", "The deeper stone is cracked but not yielded. Bell-Mourned consequence stands here, but the later reward, the later item, and the later continuation still do not belong to this first chamber pass.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look back to Warden Testimony",
+      onInteract: () => showMessage("South Threshold", "The chamber behind you proved what happened. This one makes that proof intolerably physical. The route still reads south to testimony, north to unresolved consequence.")
     });
 
     return targets;
@@ -2465,7 +2527,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus seventeen live production screens, carrying the same atlas law from benchmark ground through Hall of Names and Echo of Abandonment into Fenwatch's Warden Testimony with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus eighteen live production screens, carrying the same atlas law from benchmark ground through Hall of Names, Echo of Abandonment, and Warden Testimony into a lawful first Bell-Mourned Marshal chamber shell with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -2475,7 +2537,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through seventeen production screens into Fenwatch's Warden Testimony under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through eighteen production screens into a lawful Bell-Mourned Marshal chamber shell under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
