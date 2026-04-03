@@ -17,16 +17,26 @@ const buildVersionEl = document.getElementById("build-version");
 const buildStatusEl = document.getElementById("build-status");
 const buildStatusLabelEl = document.getElementById("build-status-label");
 const buildNoteEl = document.getElementById("build-note");
+const currentSliceEl = document.getElementById("current-slice");
 const saveStatusEl = document.getElementById("save-status");
 const saveDetailEl = document.getElementById("save-detail");
 const saveButtonEl = document.getElementById("save-button");
 const resetButtonEl = document.getElementById("reset-button");
+const debugScanButtonEl = document.getElementById("debug-scan-button");
+const debugReportButtonEl = document.getElementById("debug-report-button");
+const debugCopyButtonEl = document.getElementById("debug-copy-button");
+const debugScanStatusEl = document.getElementById("debug-scan-status");
+const debugScanStatusLabelEl = document.getElementById("debug-scan-status-label");
+const debugScanStatusDetailEl = document.getElementById("debug-scan-status-detail");
+const debugScanFeedbackEl = document.getElementById("debug-scan-feedback");
+const debugScanSummaryEl = document.getElementById("debug-scan-summary");
+const debugReportEl = document.getElementById("debug-report");
 
 const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.19-fc04-confront";
+const BUILD_VERSION = "v0.3.20-debug-scan";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -231,6 +241,11 @@ function createRuntimeState() {
 }
 
 const state = createRuntimeState();
+const debugToolState = {
+  lastScan: null,
+  lastReport: "",
+  lastCopyResult: null
+};
 
 function activeScreen() {
   return screens[state.currentScreen] || benchmarkScreen;
@@ -611,6 +626,494 @@ function objectiveText() {
   return "Benchmark complete. This screen now sets the visual law for Elderfield's rebuild.";
 }
 
+function getDebugLines() {
+  let lineA = `stone:${state.quest.landmarkRead} briar:${state.quest.briarCleared}`;
+  let lineB = `cache:${state.rewards.watchCacheCollected} npc:${state.npcPhases.talan}`;
+
+  if (state.currentScreen === "BM-02") {
+    lineA = `nook:${state.quest.pilgrimBriarCleared} cache:${state.rewards.pilgrimCacheCollected}`;
+    lineB = "law:benchmark handoff east";
+  }
+  if (state.currentScreen === "HV-01") {
+    lineA = `gate:${state.quest.highroadGateCleared} cache:${state.rewards.highroadSupplyCollected}`;
+    lineB = "path:highroad spur";
+  }
+  if (state.currentScreen === "HV-02") {
+    lineA = `cache:${state.rewards.watchersCacheCollected} route:steps`;
+    lineB = "path:watcher's steps";
+  }
+  if (state.currentScreen === "HV-03") {
+    lineA = `gate:${state.quest.watchersUpperBriarCleared} lookout:east`;
+    lineB = "path:watcher's upper";
+  }
+  if (state.currentScreen === "HV-04") {
+    lineA = `left:${state.quest.watchgateLeftLit} right:${state.quest.watchgateRightLit}`;
+    lineB = `winch:${state.quest.watchgateWinchCleared} gate:${state.quest.watchgateOpen}`;
+  }
+  if (state.currentScreen === "HV-05") {
+    lineA = `cache:${state.rewards.watchgateWallCacheCollected} wall:upper`;
+    lineB = "path:watchgate parapet";
+  }
+  if (state.currentScreen === "HV-06") {
+    const firesLit = [
+      state.quest.waysideUpperLeftLit,
+      state.quest.waysideUpperRightLit,
+      state.quest.waysideLowerLeftLit,
+      state.quest.waysideLowerRightLit
+    ].filter(Boolean).length;
+    lineA = `fires:${firesLit}/4 echo:${state.quest.waysideEchoResolved}`;
+    lineB = `tablet:${state.rewards.waysideTabletRead} path:wayside`;
+  }
+  if (state.currentScreen === "HV-07") {
+    lineA = "hub:shepherd's rest npc:yselle";
+    lineB = "paths:north east southeast";
+  }
+  if (state.currentScreen === "HV-10") {
+    lineA = `left:${state.quest.greyfenDescentLeftLit} right:${state.quest.greyfenDescentRightLit}`;
+    lineB = `thorn:${state.quest.greyfenDescentBriarCleared} open:${state.quest.greyfenDescentOpen}`;
+  }
+  if (state.currentScreen === "GF-01") {
+    lineA = `cache:${state.rewards.marshfootChestCollected} route:marshfoot`;
+    lineB = "path:greyfen threshold";
+  }
+  if (state.currentScreen === "GF-02") {
+    lineA = `toma:${state.npcPhases.toma} cache:${state.rewards.ferrymanDockCacheCollected}`;
+    lineB = "path:ferryman's reach";
+  }
+  if (state.currentScreen === "GF-05") {
+    lineA = `left:${state.quest.falseMarkerLeftLit} right:${state.quest.falseMarkerRightLit}`;
+    lineB = `truth:${state.quest.falseMarkerRevealed} epitaph:${state.rewards.falseMarkerEpitaphRead}`;
+  }
+  if (state.currentScreen === "GF-06") {
+    lineA = `path:${state.quest.memorialFlatsPathCleared} clue:${state.quest.namelessStoneClueFound}`;
+    lineB = `cache:${state.rewards.memorialTombCollected} flats:memorial`;
+  }
+  if (state.currentScreen === "GF-07") {
+    lineA = `left:${state.quest.causewayLeftLit} right:${state.quest.causewayRightLit}`;
+    lineB = `clear:${state.quest.causewayClear} path:causeway`;
+  }
+  if (state.currentScreen === "GF-10") {
+    lineA = `winch:${state.quest.fenwatchWinchCleared} gate:fenwatch`;
+    lineB = "path:final exterior";
+  }
+  if (state.currentScreen === "FC-01") {
+    lineA = `witness:${state.quest.hallNamesWitnessed} hall:names`;
+    lineB = "path:first interior";
+  }
+  if (state.currentScreen === "FC-02") {
+    lineA = `echo:${state.quest.echoAbandonmentWitnessed} chamber:abandonment`;
+    lineB = "path:second interior";
+  }
+  if (state.currentScreen === "FC-03") {
+    lineA = `proof:${state.quest.wardenTestimonyWitnessed} chamber:testimony`;
+    lineB = "path:third interior";
+  }
+  if (state.currentScreen === "FC-04") {
+    lineA = `confront:${state.quest.marshalConfrontationWitnessed} chamber:marshal`;
+    lineB = "path:boss-side consequence";
+  }
+
+  return { lineA, lineB };
+}
+
+function getCurrentQuestFlags() {
+  const flagsByScreen = {
+    "BM-01": ["landmarkRead", "caretakerMet", "briarCleared"],
+    "BM-02": ["pilgrimBriarCleared"],
+    "HV-01": ["highroadGateCleared"],
+    "HV-03": ["watchersUpperBriarCleared"],
+    "HV-04": ["watchgateLeftLit", "watchgateRightLit", "watchgateWinchCleared", "watchgateOpen"],
+    "HV-06": ["waysideUpperLeftLit", "waysideUpperRightLit", "waysideLowerLeftLit", "waysideLowerRightLit", "waysideEchoResolved"],
+    "HV-10": ["greyfenDescentLeftLit", "greyfenDescentRightLit", "greyfenDescentBriarCleared", "greyfenDescentOpen"],
+    "GF-05": ["falseMarkerLeftLit", "falseMarkerRightLit", "falseMarkerRevealed"],
+    "GF-06": ["memorialFlatsPathCleared", "namelessStoneClueFound"],
+    "GF-07": ["causewayLeftLit", "causewayRightLit", "causewayClear"],
+    "GF-10": ["fenwatchWinchCleared"],
+    "FC-01": ["hallNamesWitnessed"],
+    "FC-02": ["echoAbandonmentWitnessed"],
+    "FC-03": ["wardenTestimonyWitnessed"],
+    "FC-04": ["wardenTestimonyWitnessed", "marshalConfrontationWitnessed"]
+  };
+
+  const names = flagsByScreen[state.currentScreen] || [];
+  return names.map((name) => ({
+    name,
+    value: Boolean(state.quest[name])
+  }));
+}
+
+function getRelevantBarrierStatuses() {
+  const screen = activeScreen();
+  const solids = getSolids();
+  const statuses = [];
+  const props = screen.props || {};
+
+  for (const [key, rectBox] of Object.entries(props)) {
+    if (!rectBox || typeof rectBox.x !== "number") continue;
+
+    if (!(key.endsWith("Threshold") || /(Seal|Gate|Briar)$/.test(key))) {
+      continue;
+    }
+
+    const blocked = solids.some((solid) => overlaps(solid, rectBox));
+    const label = key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (char) => char.toUpperCase())
+      .trim();
+    const kind = key.endsWith("Threshold") ? "threshold" : "gate";
+
+    statuses.push({
+      key,
+      kind,
+      label,
+      state: blocked ? (kind === "threshold" ? "blocked" : "closed") : (kind === "threshold" ? "open" : "open / cleared")
+    });
+  }
+
+  return statuses;
+}
+
+function summarizeTransitions(screen) {
+  return (screen.transitions || []).map((transition) => {
+    const target = screens[transition.to];
+    const spawnExists = Boolean(target?.spawns?.[transition.spawn]);
+    return {
+      to: transition.to,
+      name: target?.name || "Missing screen",
+      spawn: transition.spawn,
+      ok: Boolean(target) && spawnExists
+    };
+  });
+}
+
+function createScannerCheck(label, stateLabel, detail) {
+  return { label, state: stateLabel, detail };
+}
+
+function runDebugScanner() {
+  syncDerivedProgress();
+
+  const screen = activeScreen();
+  const currentObjective = objectiveText();
+  const debugLines = getDebugLines();
+  const keyFlags = getCurrentQuestFlags();
+  const transitions = summarizeTransitions(screen);
+  const barrierStatuses = getRelevantBarrierStatuses();
+  const warnings = [];
+  const checks = [];
+  const store = storage();
+  const buildVersionMatches = buildVersionEl ? buildVersionEl.textContent.trim() === state.meta.buildVersion : true;
+  const screenIdMatches = screenIdEl ? screenIdEl.textContent.trim() === state.currentScreen : true;
+  const objectiveMatches = objectiveTextEl ? objectiveTextEl.textContent.trim() === currentObjective : true;
+  const currentSliceMentionsScreen = currentSliceEl ? currentSliceEl.textContent.includes(screen.name) : true;
+  const currentSpawnValid = Boolean(screen.spawns?.[state.currentSpawn]);
+  const checkpointScreen = screens[state.checkpoint.screenId];
+  const checkpointValid = Boolean(checkpointScreen?.spawns?.[state.checkpoint.spawnId]);
+  const saveReady = (() => {
+    try {
+      buildSaveData();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  })();
+  const transitionsValid = transitions.every((transition) => transition.ok);
+
+  checks.push(createScannerCheck(
+    "Build honesty",
+    buildVersionMatches ? "pass" : "fail",
+    buildVersionMatches ? "Runtime build version matches the published panel text." : "Runtime build version and published panel text are out of sync."
+  ));
+  checks.push(createScannerCheck(
+    "HUD honesty",
+    screenIdMatches && objectiveMatches ? "pass" : "fail",
+    screenIdMatches && objectiveMatches ? "Current screen and objective panels match runtime state." : "Screen or objective panel text has drifted from runtime state."
+  ));
+  checks.push(createScannerCheck(
+    "Current spawn",
+    currentSpawnValid ? "pass" : "fail",
+    currentSpawnValid ? `Spawn '${state.currentSpawn}' is valid for ${state.currentScreen}.` : `Spawn '${state.currentSpawn}' is not valid for ${state.currentScreen}.`
+  ));
+  checks.push(createScannerCheck(
+    "Checkpoint",
+    checkpointValid ? "pass" : "fail",
+    checkpointValid ? `Checkpoint ${state.checkpoint.screenId} (${state.checkpoint.spawnId}) is restorable.` : `Checkpoint ${state.checkpoint.screenId} (${state.checkpoint.spawnId}) is not restorable.`
+  ));
+  checks.push(createScannerCheck(
+    "Transitions",
+    transitionsValid ? "pass" : "fail",
+    transitions.length ? transitions.map((transition) => `${transition.to}:${transition.spawn}`).join(", ") : "No live transitions on this screen."
+  ));
+  checks.push(createScannerCheck(
+    "Thresholds / gates",
+    barrierStatuses.every((entry) => entry.state !== "blocked" || entry.kind !== "gate") ? "pass" : "warn",
+    barrierStatuses.length ? barrierStatuses.map((entry) => `${entry.label}=${entry.state}`).join(", ") : "No relevant threshold or gate props on this screen."
+  ));
+  checks.push(createScannerCheck(
+    "Save readiness",
+    store && saveReady ? "pass" : "fail",
+    store && saveReady ? "Storage is available and a save payload builds cleanly." : "Storage or save payload generation is failing."
+  ));
+  checks.push(createScannerCheck(
+    "Current slice honesty",
+    currentSliceMentionsScreen ? "pass" : "warn",
+    currentSliceMentionsScreen ? `${screen.name} is present in the published current-slice text.` : `${screen.name} is missing from the published current-slice text.`
+  ));
+  checks.push(createScannerCheck(
+    "Prototype honesty",
+    "pass",
+    "Live runtime can confirm root honesty here; prototype mirror alignment should be checked separately after runtime file changes."
+  ));
+
+  for (const check of checks) {
+    if (check.state !== "pass") {
+      warnings.push(`${check.label}: ${check.detail}`);
+    }
+  }
+
+  const passCount = checks.filter((check) => check.state === "pass").length;
+  const warnCount = checks.filter((check) => check.state === "warn").length;
+  const failCount = checks.filter((check) => check.state === "fail").length;
+  const overallState = failCount > 0 ? "fail" : warnCount > 0 ? "warn" : "pass";
+
+  const report = {
+    overallState,
+    passCount,
+    warnCount,
+    failCount,
+    buildVersion: state.meta.buildVersion,
+    currentScreen: {
+      id: state.currentScreen,
+      name: screen.name,
+      region: screen.region
+    },
+    currentSpawn: state.currentSpawn,
+    checkpoint: {
+      screenId: state.checkpoint.screenId,
+      spawnId: state.checkpoint.spawnId
+    },
+    keyFlags,
+    objective: currentObjective,
+    debugState: {
+      overlay: state.debug,
+      lineA: debugLines.lineA,
+      lineB: debugLines.lineB
+    },
+    transitions,
+    barrierStatuses,
+    warnings,
+    checks
+  };
+
+  debugToolState.lastScan = report;
+  return report;
+}
+
+function buildFullDebugReport(report = runDebugScanner()) {
+  const lines = [
+    "ELDERFIELD DEBUG REPORT",
+    "=======================",
+    `Build Version: ${report.buildVersion}`,
+    `Current Screen: ${report.currentScreen.id} - ${report.currentScreen.name}`,
+    `Current Region: ${report.currentScreen.region}`,
+    `Current Spawn: ${report.currentSpawn}`,
+    `Checkpoint: ${report.checkpoint.screenId} (${report.checkpoint.spawnId})`,
+    "",
+    "Key Quest Flags:"
+  ];
+
+  if (report.keyFlags.length) {
+    for (const flag of report.keyFlags) {
+      lines.push(`- ${flag.name}: ${flag.value}`);
+    }
+  } else {
+    lines.push("- none specific to this screen");
+  }
+
+  lines.push(
+    "",
+    "Objective:",
+    `- ${report.objective}`,
+    "",
+    "Debug State:",
+    `- overlay: ${report.debugState.overlay}`,
+    `- lineA: ${report.debugState.lineA}`,
+    `- lineB: ${report.debugState.lineB}`,
+    "",
+    "Transitions:"
+  );
+
+  if (report.transitions.length) {
+    for (const transition of report.transitions) {
+      lines.push(`- ${transition.to} (${transition.name}) via spawn '${transition.spawn}' [${transition.ok ? "ok" : "invalid"}]`);
+    }
+  } else {
+    lines.push("- none");
+  }
+
+  lines.push("", "Thresholds / Gates:");
+  if (report.barrierStatuses.length) {
+    for (const entry of report.barrierStatuses) {
+      lines.push(`- ${entry.label}: ${entry.state}`);
+    }
+  } else {
+    lines.push("- none detected on this screen");
+  }
+
+  lines.push("", "Scanner Checks:");
+  for (const check of report.checks) {
+    lines.push(`- ${check.state.toUpperCase()}: ${check.label} - ${check.detail}`);
+  }
+
+  lines.push("", "Warnings:");
+  if (report.warnings.length) {
+    for (const warning of report.warnings) {
+      lines.push(`- ${warning}`);
+    }
+  } else {
+    lines.push("- none");
+  }
+
+  const text = lines.join("\n");
+  debugToolState.lastReport = text;
+  return text;
+}
+
+function renderScannerSummary(report) {
+  if (!debugScanStatusEl || !debugScanStatusLabelEl || !debugScanStatusDetailEl || !debugScanSummaryEl) return;
+
+  debugScanStatusEl.dataset.state = report.overallState;
+  debugScanStatusLabelEl.textContent = report.overallState === "fail" ? "Fail" : report.overallState === "warn" ? "Pass With Warnings" : "Pass";
+  debugScanStatusDetailEl.textContent = `${report.passCount} pass, ${report.warnCount} warn, ${report.failCount} fail`;
+
+  debugScanSummaryEl.innerHTML = "";
+  for (const check of report.checks) {
+    const item = document.createElement("div");
+    item.className = "debug-scan-item";
+
+    const line = document.createElement("div");
+    line.className = "debug-scan-line";
+
+    const badge = document.createElement("span");
+    badge.className = "debug-badge mono";
+    badge.dataset.state = check.state;
+    badge.textContent = check.state;
+
+    const label = document.createElement("span");
+    label.className = "strong";
+    label.textContent = check.label;
+
+    const detail = document.createElement("p");
+    detail.className = "muted";
+    detail.textContent = check.detail;
+
+    line.appendChild(badge);
+    line.appendChild(label);
+    item.appendChild(line);
+    item.appendChild(detail);
+    debugScanSummaryEl.appendChild(item);
+  }
+}
+
+function setDebugFeedback(text) {
+  if (debugScanFeedbackEl) {
+    debugScanFeedbackEl.textContent = text;
+  }
+}
+
+function renderDebugReport(text) {
+  if (debugReportEl) {
+    debugReportEl.textContent = text;
+  }
+}
+
+function runScannerAction() {
+  const report = runDebugScanner();
+  renderScannerSummary(report);
+  setDebugFeedback(
+    report.overallState === "fail"
+      ? "Scan complete. Failures were found in the current runtime state."
+      : report.overallState === "warn"
+        ? "Scan complete. The runtime is playable, but the scanner found warnings to review."
+        : "Scan complete. Runtime checks passed cleanly."
+  );
+  return report;
+}
+
+function runFullReportAction() {
+  const report = runScannerAction();
+  renderDebugReport(buildFullDebugReport(report));
+  setDebugFeedback(
+    report.overallState === "fail"
+      ? "Full report generated with failures called out."
+      : report.overallState === "warn"
+        ? "Full report generated with warnings called out."
+        : "Full report generated cleanly."
+  );
+  return report;
+}
+
+function copyTextFallback(text) {
+  if (!document.createElement || !document.body) return false;
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+
+  if (typeof textarea.select === "function") {
+    textarea.select();
+  }
+  if (typeof textarea.setSelectionRange === "function") {
+    textarea.setSelectionRange(0, text.length);
+  }
+
+  let copied = false;
+  if (typeof document.execCommand === "function") {
+    try {
+      copied = document.execCommand("copy");
+    } catch (error) {
+      copied = false;
+    }
+  }
+
+  if (typeof textarea.remove === "function") {
+    textarea.remove();
+  } else if (document.body.removeChild) {
+    document.body.removeChild(textarea);
+  }
+
+  return copied;
+}
+
+async function copyFullDebugReport() {
+  const text = debugToolState.lastReport || buildFullDebugReport(runDebugScanner());
+
+  if (navigator?.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      debugToolState.lastCopyResult = { ok: true, message: "Report copied to clipboard." };
+      setDebugFeedback("Report copied to clipboard.");
+      return debugToolState.lastCopyResult;
+    } catch (error) {
+      // Try fallback below.
+    }
+  }
+
+  const copied = copyTextFallback(text);
+  if (copied) {
+    debugToolState.lastCopyResult = { ok: true, message: "Report copied with fallback copy support." };
+    setDebugFeedback("Report copied with fallback copy support.");
+    return debugToolState.lastCopyResult;
+  }
+
+  debugToolState.lastCopyResult = { ok: false, message: "Copy failed. Clipboard access was unavailable in this runtime." };
+  setDebugFeedback("Copy failed. Clipboard access was unavailable in this runtime.");
+  return debugToolState.lastCopyResult;
+}
+
 function updateHud() {
   const screen = screens[state.currentScreen];
   screenIdEl.textContent = state.currentScreen;
@@ -932,90 +1435,7 @@ function drawDebugOverlay() {
   ctx.fillRect(8, 26, 170, 70);
   ctx.strokeStyle = "#d5ca8e";
   ctx.strokeRect(8.5, 26.5, 169, 69);
-  let lineA = `stone:${state.quest.landmarkRead} briar:${state.quest.briarCleared}`;
-  let lineB = `cache:${state.rewards.watchCacheCollected} npc:${state.npcPhases.talan}`;
-  if (state.currentScreen === "BM-02") {
-    lineA = `nook:${state.quest.pilgrimBriarCleared} cache:${state.rewards.pilgrimCacheCollected}`;
-    lineB = "law:benchmark handoff east";
-  }
-  if (state.currentScreen === "HV-01") {
-    lineA = `gate:${state.quest.highroadGateCleared} cache:${state.rewards.highroadSupplyCollected}`;
-    lineB = "path:highroad spur";
-  }
-  if (state.currentScreen === "HV-02") {
-    lineA = `cache:${state.rewards.watchersCacheCollected} route:steps`;
-    lineB = "path:watcher's steps";
-  }
-  if (state.currentScreen === "HV-03") {
-    lineA = `gate:${state.quest.watchersUpperBriarCleared} lookout:east`;
-    lineB = "path:watcher's upper";
-  }
-  if (state.currentScreen === "HV-04") {
-    lineA = `left:${state.quest.watchgateLeftLit} right:${state.quest.watchgateRightLit}`;
-    lineB = `winch:${state.quest.watchgateWinchCleared} gate:${state.quest.watchgateOpen}`;
-  }
-  if (state.currentScreen === "HV-05") {
-    lineA = `cache:${state.rewards.watchgateWallCacheCollected} wall:upper`;
-    lineB = "path:watchgate parapet";
-  }
-  if (state.currentScreen === "HV-06") {
-    const firesLit = [
-      state.quest.waysideUpperLeftLit,
-      state.quest.waysideUpperRightLit,
-      state.quest.waysideLowerLeftLit,
-      state.quest.waysideLowerRightLit
-    ].filter(Boolean).length;
-    lineA = `fires:${firesLit}/4 echo:${state.quest.waysideEchoResolved}`;
-    lineB = `tablet:${state.rewards.waysideTabletRead} path:wayside`;
-  }
-  if (state.currentScreen === "HV-07") {
-    lineA = "hub:shepherd's rest npc:yselle";
-    lineB = "paths:north east southeast";
-  }
-  if (state.currentScreen === "HV-10") {
-    lineA = `left:${state.quest.greyfenDescentLeftLit} right:${state.quest.greyfenDescentRightLit}`;
-    lineB = `thorn:${state.quest.greyfenDescentBriarCleared} open:${state.quest.greyfenDescentOpen}`;
-  }
-  if (state.currentScreen === "GF-01") {
-    lineA = `cache:${state.rewards.marshfootChestCollected} route:marshfoot`;
-    lineB = "path:greyfen threshold";
-  }
-  if (state.currentScreen === "GF-02") {
-    lineA = `toma:${state.npcPhases.toma} cache:${state.rewards.ferrymanDockCacheCollected}`;
-    lineB = "path:ferryman's reach";
-  }
-  if (state.currentScreen === "GF-05") {
-    lineA = `left:${state.quest.falseMarkerLeftLit} right:${state.quest.falseMarkerRightLit}`;
-    lineB = `truth:${state.quest.falseMarkerRevealed} epitaph:${state.rewards.falseMarkerEpitaphRead}`;
-  }
-  if (state.currentScreen === "GF-06") {
-    lineA = `path:${state.quest.memorialFlatsPathCleared} clue:${state.quest.namelessStoneClueFound}`;
-    lineB = `cache:${state.rewards.memorialTombCollected} flats:memorial`;
-  }
-  if (state.currentScreen === "GF-07") {
-    lineA = `left:${state.quest.causewayLeftLit} right:${state.quest.causewayRightLit}`;
-    lineB = `clear:${state.quest.causewayClear} path:causeway`;
-  }
-  if (state.currentScreen === "GF-10") {
-    lineA = `winch:${state.quest.fenwatchWinchCleared} gate:fenwatch`;
-    lineB = "path:final exterior";
-  }
-  if (state.currentScreen === "FC-01") {
-    lineA = `witness:${state.quest.hallNamesWitnessed} hall:names`;
-    lineB = "path:first interior";
-  }
-  if (state.currentScreen === "FC-02") {
-    lineA = `echo:${state.quest.echoAbandonmentWitnessed} chamber:abandonment`;
-    lineB = "path:second interior";
-  }
-  if (state.currentScreen === "FC-03") {
-    lineA = `proof:${state.quest.wardenTestimonyWitnessed} chamber:testimony`;
-    lineB = "path:third interior";
-  }
-  if (state.currentScreen === "FC-04") {
-    lineA = `confront:${state.quest.marshalConfrontationWitnessed} chamber:marshal`;
-    lineB = "path:boss-side consequence";
-  }
+  const { lineA, lineB } = getDebugLines();
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
   drawPixelText(lineA, 14, 52);
   drawPixelText(lineB, 14, 64);
@@ -2576,6 +2996,27 @@ if (resetButtonEl) {
   });
 }
 
+if (debugScanButtonEl) {
+  debugScanButtonEl.addEventListener("click", () => {
+    runScannerAction();
+  });
+}
+
+if (debugReportButtonEl) {
+  debugReportButtonEl.addEventListener("click", () => {
+    runFullReportAction();
+  });
+}
+
+if (debugCopyButtonEl) {
+  debugCopyButtonEl.addEventListener("click", async () => {
+    if (!debugToolState.lastReport) {
+      runFullReportAction();
+    }
+    await copyFullDebugReport();
+  });
+}
+
 window.ElderfieldDebug = {
   state,
   screen: benchmarkScreen,
@@ -2598,6 +3039,17 @@ window.ElderfieldDebug = {
       status: state.meta.buildStatus,
       note: state.meta.buildNote
     };
+  },
+  runScanner: runDebugScanner,
+  buildFullReport: buildFullDebugReport,
+  async copyFullReport() {
+    return copyFullDebugReport();
+  },
+  getLastScan() {
+    return debugToolState.lastScan;
+  },
+  getLastReport() {
+    return debugToolState.lastReport;
   },
   getStoredSave() {
     const store = storage();
