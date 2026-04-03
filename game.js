@@ -26,7 +26,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.18-fc04-shell";
+const BUILD_VERSION = "v0.3.19-fc04-confront";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -139,11 +139,12 @@ function createDefaultSaveData() {
       causewayLeftLit: false,
       causewayRightLit: false,
       causewayClear: false,
-      fenwatchWinchCleared: false,
-      hallNamesWitnessed: false,
-      echoAbandonmentWitnessed: false,
-      wardenTestimonyWitnessed: false
-    },
+        fenwatchWinchCleared: false,
+        hallNamesWitnessed: false,
+        echoAbandonmentWitnessed: false,
+        wardenTestimonyWitnessed: false,
+        marshalConfrontationWitnessed: false
+      },
     rewards: {
       watchCacheCollected: false,
       pilgrimCacheCollected: false,
@@ -455,7 +456,10 @@ function renderInventory() {
 
 function objectiveText() {
   if (state.currentScreen === "FC-04") {
-    return "Bell-Mourned Marshal Chamber should now read as consequence chamber: the proof has taken form, but combat, reward, and spectacle all remain deliberately held back.";
+    if (!state.quest.marshalConfrontationWitnessed) {
+      return "Confront the Bell-Mourned marshal so consequence becomes direct without tipping this chamber into combat or spectacle.";
+    }
+    return "Bell-Mourned Marshal Chamber should now read as consequence directly faced: the chamber has shifted from shell to confrontation-state without reward, spectacle, or boss escalation.";
   }
   if (state.currentScreen === "FC-03") {
     if (!state.quest.wardenTestimonyWitnessed) {
@@ -1009,7 +1013,7 @@ function drawDebugOverlay() {
     lineB = "path:third interior";
   }
   if (state.currentScreen === "FC-04") {
-    lineA = "shell:true chamber:marshal";
+    lineA = `confront:${state.quest.marshalConfrontationWitnessed} chamber:marshal`;
     lineB = "path:boss-side consequence";
   }
   drawPixelText(`x:${Math.round(state.player.x)} y:${Math.round(state.player.y)} dir:${state.player.dir}`, 14, 40);
@@ -2243,8 +2247,16 @@ function getInteractionTargets() {
   if (state.currentScreen === "FC-04") {
     targets.push({
       rect: screen.props.landmark,
-      label: "Inspect Bell-Mourned marshal",
-      onInteract: () => showMessage("Bell-Mourned Marshal", "What stands at the center is not a clean monument and not yet a boss performance. Record, armor, chain, and burden have been forced into one violated memorial mass. Proof has finally taken form, and it is terrible precisely because the chamber still refuses theatrics.")
+      label: state.quest.marshalConfrontationWitnessed ? "Inspect Bell-Mourned marshal" : "Confront Bell-Mourned marshal",
+      onInteract: () => {
+        if (!state.quest.marshalConfrontationWitnessed) {
+          state.quest.marshalConfrontationWitnessed = true;
+          commitProgress("State saved: Bell-Mourned confrontation witnessed");
+          showMessage("Bell-Mourned Marshal", "Standing before it directly changes the room. The chamber still refuses combat spectacle, but the burden at its center no longer reads as distant evidence. It now reads as consequence you have personally faced.");
+          return;
+        }
+        showMessage("Bell-Mourned Marshal", "What stands at the center is not a clean monument and not yet a boss performance. Record, armor, chain, and burden have been forced into one violated memorial mass. The confrontation-state holds because the chamber now treats you as witness to consequence, not merely as reader of proof.");
+      }
     });
 
     targets.push({
@@ -2262,7 +2274,13 @@ function getInteractionTargets() {
     targets.push({
       rect: screen.props.northScar,
       label: "Inspect scarred inner seal",
-      onInteract: () => showMessage("Scarred Seal", "The deeper stone is cracked but not yielded. Bell-Mourned consequence stands here, but the later reward, the later item, and the later continuation still do not belong to this first chamber pass.")
+      onInteract: () => {
+        if (!state.quest.marshalConfrontationWitnessed) {
+          showMessage("Scarred Seal", "The deeper stone is cracked but not yielded. Bell-Mourned consequence stands here, but the later reward, the later item, and the later continuation still do not belong to this first chamber pass.");
+          return;
+        }
+        showMessage("Scarred Seal", "After the confrontation, the deeper scar reads less like a teaser and more like a held boundary. The chamber has advanced one step in pressure, but it is still refusing the later reward and route bleed.");
+      }
     });
 
     targets.push({
@@ -2527,7 +2545,7 @@ function startFreshJourney() {
   state.meta.lastSaveTime = null;
   state.lastTime = 0;
   loadScreen(benchmarkScreen.id, "default", { skipSave: true });
-  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus eighteen live production screens, carrying the same atlas law from benchmark ground through Hall of Names, Echo of Abandonment, and Warden Testimony into a lawful first Bell-Mourned Marshal chamber shell with movement, combat, save/load, pause, debug, and progression intact.");
+  showMessage("Benchmark Active", "The active build now contains the locked benchmark pair plus eighteen live production screens, carrying the same atlas law from benchmark ground through Hall of Names, Echo of Abandonment, and Warden Testimony into a lawful Bell-Mourned confrontation-state chamber pass with movement, combat, save/load, pause, debug, and progression intact.");
   saveProgress("Journey started: benchmark screen");
 }
 
@@ -2537,7 +2555,7 @@ function bootGame() {
     const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
     loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     setBuildStatus("green", "Green means we are good. The benchmark booted and restored normally.");
-    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through eighteen production screens into a lawful Bell-Mourned Marshal chamber shell under the same visual law.");
+    showMessage("Journey Restored", "Progress loaded. The benchmark pair remains locked, and the live route now continues through eighteen production screens into a lawful Bell-Mourned confrontation-state chamber pass under the same visual law.");
   } else {
     startFreshJourney();
     setBuildStatus("green", "Green means we are good. The benchmark booted cleanly and is ready for review.");
