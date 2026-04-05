@@ -36,7 +36,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.20-debug-scan";
+const BUILD_VERSION = "v0.3.21-fc04-presence";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -371,6 +371,8 @@ function loadProgress() {
     if (!raw) return false;
     const payload = normalizeSaveData(JSON.parse(raw));
     applySaveData(payload);
+    const checkpoint = screens[state.checkpoint.screenId] ? state.checkpoint : createDefaultSaveData().checkpoint;
+    loadScreen(checkpoint.screenId, checkpoint.spawnId, { skipSave: true });
     state.meta.saveLoaded = true;
     state.meta.lastSaveReason = "Journey restored";
     state.meta.lastSaveTime = payload.savedAt;
@@ -709,7 +711,8 @@ function getDebugLines() {
     lineB = "path:third interior";
   }
   if (state.currentScreen === "FC-04") {
-    lineA = `confront:${state.quest.marshalConfrontationWitnessed} chamber:marshal`;
+    const presence = getMarshalPresenceCueState();
+    lineA = `confront:${state.quest.marshalConfrontationWitnessed} presence:${presence.label}`;
     lineB = "path:boss-side consequence";
   }
 
@@ -1399,6 +1402,35 @@ function drawRuneGlow() {
   ctx.restore();
 }
 
+function getMarshalPresenceCueState() {
+  const active = state.currentScreen === "FC-04" && state.quest.marshalConfrontationWitnessed;
+  const phase = active ? (Math.sin(state.lastTime * 0.004) + 1) / 2 : 0;
+  return {
+    active,
+    phase,
+    label: active ? "held" : "dormant"
+  };
+}
+
+function drawMarshalPresenceCue() {
+  const cue = getMarshalPresenceCueState();
+  if (!cue.active) return;
+
+  const screen = activeScreen();
+  const { x, y, w, h } = screen.props.landmark;
+  const sideAlpha = 0.08 + cue.phase * 0.08;
+  const baseAlpha = 0.18 + cue.phase * 0.08;
+
+  ctx.save();
+  ctx.fillStyle = `rgba(213, 202, 142, ${sideAlpha.toFixed(3)})`;
+  ctx.fillRect(x + 8, y + 10, 1, h - 18);
+  ctx.fillRect(x + w - 9, y + 10, 1, h - 18);
+  ctx.fillStyle = `rgba(21, 18, 16, ${baseAlpha.toFixed(3)})`;
+  ctx.fillRect(x + 6, y + h - 11, w - 12, 3);
+  ctx.fillRect(x + 12, y + h - 14, w - 24, 1);
+  ctx.restore();
+}
+
 function drawHearts() {
   for (let i = 0; i < 3; i += 1) {
     ctx.fillStyle = "#241816";
@@ -1479,6 +1511,7 @@ function drawScene() {
   drawBriar();
   drawCache();
   drawRuneGlow();
+  drawMarshalPresenceCue();
   drawNpc();
 
   for (const enemy of state.enemies) {
@@ -3040,6 +3073,7 @@ window.ElderfieldDebug = {
       note: state.meta.buildNote
     };
   },
+  getMarshalPresenceCueState,
   runScanner: runDebugScanner,
   buildFullReport: buildFullDebugReport,
   async copyFullReport() {
