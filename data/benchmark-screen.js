@@ -732,6 +732,78 @@
     return tiles;
   }
 
+  function buildHv09Ground() {
+    const { tiles, place } = fillGrass();
+    const roadTiles = [
+      [9, 11], [10, 11],
+      [9, 10], [10, 10],
+      [8, 9], [9, 9], [10, 9], [11, 9],
+      [8, 8], [9, 8], [10, 8], [11, 8],
+      [8, 7], [9, 7], [10, 7], [11, 7],
+      [9, 6], [10, 6],
+      [9, 5], [10, 5],
+      [9, 4], [10, 4],
+      [9, 3], [10, 3],
+      [8, 2], [9, 2], [10, 2], [11, 2],
+      [8, 1], [9, 1], [10, 1], [11, 1]
+    ];
+
+    for (const [tx, ty] of roadTiles) {
+      place((tx + ty) % 2 === 0 ? "roadA" : "roadB", tx, ty);
+    }
+
+    return tiles;
+  }
+
+  function buildHv09Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 19; tx += 1) {
+      if (tx === 9 || tx === 10) {
+        place("stairs", tx, 5);
+      } else if (tx === 0) {
+        place("cliffLeft", tx, 5);
+      } else if (tx === 19) {
+        place("cliffRight", tx, 5);
+      } else {
+        place("cliffFace", tx, 5);
+      }
+    }
+
+    place("ruinL", 8, 2);
+    place("landmarkTopL", 9, 1);
+    place("landmarkTopR", 10, 1);
+    place("landmarkBaseL", 9, 2);
+    place("landmarkBaseR", 10, 2);
+    place("ruinR", 11, 2);
+
+    place("sign", 8, 1);
+    place("sign", 11, 1);
+    place("sign", 2, 1);
+    place("sign", 17, 1);
+
+    place("ruinL", 1, 2);
+    place("ruinR", 2, 2);
+    place("ruinL", 16, 2);
+    place("ruinR", 17, 2);
+
+    place("treeTL", 0, 8);
+    place("treeTR", 1, 8);
+    place("treeBL", 0, 9);
+    place("treeBR", 1, 9);
+
+    place("treeTL", 17, 8);
+    place("treeTR", 18, 8);
+    place("treeBL", 17, 9);
+    place("treeBR", 18, 9);
+
+    return tiles;
+  }
+
   function buildHv10Ground() {
     const { tiles, place } = fillGrass();
     const roadTiles = [
@@ -2070,6 +2142,7 @@
     spawns: {
       default: { x: 154, y: 160 },
       south: { x: 154, y: 160 },
+      north: { x: 154, y: 40 },
       southeast: { x: 240, y: 152 }
     },
     layers: {
@@ -2086,6 +2159,7 @@
       southeastMarker: { x: 240, y: 160, w: 16, h: 16 }
     },
     transitions: [
+      { rect: rect(136, 0, 48, 8), to: "HV-09", spawn: "south" },
       { rect: rect(136, 184, 48, 8), to: "HV-06", spawn: "north" },
       { rect: rect(224, 184, 48, 8), to: "HV-10", spawn: "north" }
     ],
@@ -2111,6 +2185,53 @@
       rect(256, 138, 32, 10),
       rect(0, 112, 32, 48),
       rect(272, 16, 32, 32)
+    ]
+  };
+
+  const hv09 = {
+    id: "HV-09",
+    name: "North Bell Overlook",
+    region: "Highroad Vale",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 154, y: 152 },
+      south: { x: 154, y: 152 }
+    },
+    layers: {
+      ground: buildHv09Ground(),
+      mid: buildHv09Mid(),
+      fore: []
+    },
+    props: {
+      landmark: { x: 144, y: 32, w: 32, h: 30 },
+      northGate: { x: 136, y: 16, w: 48, h: 16 },
+      towerView: { x: 232, y: 16, w: 32, h: 24 },
+      southThreshold: { x: 136, y: 160, w: 48, h: 16 }
+    },
+    transitions: [
+      { rect: rect(136, 184, 48, 8), to: "HV-07", spawn: "north" }
+    ],
+    enemySpawns: [
+      {
+        type: "hound",
+        x: 96,
+        y: 146,
+        min: 64,
+        max: 124,
+        axis: "x",
+        dir: "left",
+        speed: 18,
+        hp: 2
+      }
+    ],
+    baseSolids: [
+      rect(0, 0, 320, 16),
+      rect(136, 16, 48, 16),
+      rect(0, 96, 144, 16),
+      rect(176, 96, 144, 16),
+      rect(144, 32, 32, 28),
+      rect(0, 128, 32, 32),
+      rect(272, 128, 32, 32)
     ]
   };
 
@@ -2709,6 +2830,7 @@
     [hv05.id]: hv05,
     [hv06.id]: hv06,
     [hv07.id]: hv07,
+    [hv09.id]: hv09,
     [hv10.id]: hv10,
     [gf01.id]: gf01,
     [gf02.id]: gf02,
