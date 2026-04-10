@@ -36,7 +36,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.21-fc04-presence";
+const BUILD_VERSION = "v0.3.22-hv09";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -556,8 +556,11 @@ function objectiveText() {
     }
     return "Greyfen Descent should now feel like the true downward turn out of Highroad shelter and into lowland memory.";
   }
+  if (state.currentScreen === "HV-09") {
+    return "North Bell Overlook should read as a post-Fenwatch chapter threshold: colder air, one clean Cinderpeak sightline, and a deliberately held north gate instead of spectacle or reward bleed.";
+  }
   if (state.currentScreen === "HV-07") {
-    return "Shepherd's Rest should read as the first true upland hub: shelter, standing stone, one live Greyfen branch, and two future roads held in reserve.";
+    return "Shepherd's Rest should read as the first true upland hub: shelter, standing stone, one live north overlook, one live Greyfen branch, and one east road still held in reserve.";
   }
   if (state.currentScreen === "HV-06") {
     if (!state.quest.waysideEchoResolved) {
@@ -669,6 +672,10 @@ function getDebugLines() {
   if (state.currentScreen === "HV-07") {
     lineA = "hub:shepherd's rest npc:yselle";
     lineB = "paths:north east southeast";
+  }
+  if (state.currentScreen === "HV-09") {
+    lineA = "gate:held view:cinderpeak";
+    lineB = "path:north bell overlook";
   }
   if (state.currentScreen === "HV-10") {
     lineA = `left:${state.quest.greyfenDescentLeftLit} right:${state.quest.greyfenDescentRightLit}`;
@@ -2054,7 +2061,7 @@ function getInteractionTargets() {
     targets.push({
       rect: screen.props.northThreshold,
       label: "Look north",
-      onInteract: () => showMessage("North Road", "The northern rise leaves Shepherd's Rest and climbs toward harsher country. The next production screen can continue there without needing a new visual language.")
+      onInteract: () => showMessage("North Road", "The northern rise now reaches North Bell Overlook. Beyond it, the ascent toward Cinderpeak stays visibly held so the road can promise the next chapter without opening it all at once.")
     });
 
     targets.push({
@@ -2067,6 +2074,34 @@ function getInteractionTargets() {
       rect: screen.props.southeastMarker,
       label: "Inspect southeast branch",
       onInteract: () => showMessage("Southeast Branch", "The lower branch now leads into Greyfen Descent. Shepherd's Rest finally hands the main route down into the marsh approach instead of only promising it.")
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "HV-09") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read north waypoint altar",
+      onInteract: () => showMessage("North Waypoint Altar", "The old bell-road altar steadies the overlook without turning it into a shrine scene. This is a threshold marker: the road has climbed back into open air, and the kingdom's next scale now stands in plain sight.")
+    });
+
+    targets.push({
+      rect: screen.props.northGate,
+      label: "Inspect held wind gate",
+      onInteract: () => showMessage("Held Wind Gate", "The ascent beyond is visible but not yet granted. North Bell Overlook is here to hand the route upward cleanly, not to swallow the whole Cinderpeak chapter in one pass.")
+    });
+
+    targets.push({
+      rect: screen.props.towerView,
+      label: "Study Cinderpeak towers",
+      onInteract: () => showMessage("Cinderpeak Towers", "The signal towers stand clean against the far rise for the first time. Fenwatch's buried truth is still with you, but the next road now asks for exposure, height, and older watch-sites instead of more descent.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look back to Shepherd's Rest",
+      onInteract: () => showMessage("South Threshold", "Shepherd's Rest lies below as the last kept breath of the upland road. Reaching this overlook should feel like re-emergence after Fenwatch, not like grief has been resolved.")
     });
 
     return targets;
