@@ -36,7 +36,7 @@ const WIDTH = canvas.width;
 const HEIGHT = canvas.height;
 const SAVE_KEY = "elderfield.visual-benchmark.save.v1";
 const SAVE_VERSION = 1;
-const BUILD_VERSION = "v0.3.22-hv09";
+const BUILD_VERSION = "v0.3.23-cp01";
 const BUILD_STATUS_TEXT = {
   green: "Good",
   yellow: "Needs Help",
@@ -557,10 +557,13 @@ function objectiveText() {
     return "Greyfen Descent should now feel like the true downward turn out of Highroad shelter and into lowland memory.";
   }
   if (state.currentScreen === "HV-09") {
-    return "North Bell Overlook should read as a post-Fenwatch chapter threshold: colder air, one clean Cinderpeak sightline, and a deliberately held north gate instead of spectacle or reward bleed.";
+    return "North Bell Overlook should now hand the road cleanly into Wind Gate: the first ascent is real, the broader mountain still stays held, and the screen should remain threshold rather than spectacle.";
+  }
+  if (state.currentScreen === "CP-01") {
+    return "Wind Gate should read as the first true Cinderpeak commitment: sharper air, upward pull, one dominant mountain gate, and a north continuation still deliberately held.";
   }
   if (state.currentScreen === "HV-07") {
-    return "Shepherd's Rest should read as the first true upland hub: shelter, standing stone, one live north overlook, one live Greyfen branch, and one east road still held in reserve.";
+    return "Shepherd's Rest should read as the first true upland hub: shelter, standing stone, one live north road into the mountain threshold, one live Greyfen branch, and one east road still held in reserve.";
   }
   if (state.currentScreen === "HV-06") {
     if (!state.quest.waysideEchoResolved) {
@@ -674,8 +677,12 @@ function getDebugLines() {
     lineB = "paths:north east southeast";
   }
   if (state.currentScreen === "HV-09") {
-    lineA = "gate:held view:cinderpeak";
-    lineB = "path:north bell overlook";
+    lineA = "gate:wind view:cinderpeak";
+    lineB = "path:wind gate handoff";
+  }
+  if (state.currentScreen === "CP-01") {
+    lineA = "gate:held air:sharper";
+    lineB = "path:first ascent";
   }
   if (state.currentScreen === "HV-10") {
     lineA = `left:${state.quest.greyfenDescentLeftLit} right:${state.quest.greyfenDescentRightLit}`;
@@ -2061,7 +2068,7 @@ function getInteractionTargets() {
     targets.push({
       rect: screen.props.northThreshold,
       label: "Look north",
-      onInteract: () => showMessage("North Road", "The northern rise now reaches North Bell Overlook. Beyond it, the ascent toward Cinderpeak stays visibly held so the road can promise the next chapter without opening it all at once.")
+      onInteract: () => showMessage("North Road", "The northern rise now reaches North Bell Overlook and then Wind Gate. The first ascent is real now, but the broader Cinderpeak climb still stays held beyond that first commitment.")
     });
 
     targets.push({
@@ -2083,13 +2090,13 @@ function getInteractionTargets() {
     targets.push({
       rect: screen.props.landmark,
       label: "Read north waypoint altar",
-      onInteract: () => showMessage("North Waypoint Altar", "The old bell-road altar steadies the overlook without turning it into a shrine scene. This is a threshold marker: the road has climbed back into open air, and the kingdom's next scale now stands in plain sight.")
+      onInteract: () => showMessage("North Waypoint Altar", "The old bell-road altar now reads less like a held threshold and more like a last steadying marker before the mountain road commits itself. It still keeps the chapter disciplined by letting the real ascent begin one screen later.")
     });
 
     targets.push({
       rect: screen.props.northGate,
-      label: "Inspect held wind gate",
-      onInteract: () => showMessage("Held Wind Gate", "The ascent beyond is visible but not yet granted. North Bell Overlook is here to hand the route upward cleanly, not to swallow the whole Cinderpeak chapter in one pass.")
+      label: "Inspect wind gate",
+      onInteract: () => showMessage("Wind Gate", "The gate ahead now opens into the first committed ascent screen. North Bell Overlook still does its job by handing you upward cleanly without trying to become the whole mountain chapter by itself.")
     });
 
     targets.push({
@@ -2102,6 +2109,40 @@ function getInteractionTargets() {
       rect: screen.props.southThreshold,
       label: "Look back to Shepherd's Rest",
       onInteract: () => showMessage("South Threshold", "Shepherd's Rest lies below as the last kept breath of the upland road. Reaching this overlook should feel like re-emergence after Fenwatch, not like grief has been resolved.")
+    });
+
+    return targets;
+  }
+
+  if (state.currentScreen === "CP-01") {
+    targets.push({
+      rect: screen.props.landmark,
+      label: "Read Wind Gate marker",
+      onInteract: () => showMessage("Wind Gate", "This pass marker does not promise shelter. It measures commitment. Below lies the road of buried proof; above lies watch-country where the kingdom's old silence will have to stand in open air.")
+    });
+
+    targets.push({
+      rect: screen.props.northGate,
+      label: "Inspect held north pass",
+      onInteract: () => showMessage("Held North Pass", "Wind Gate is the first true mountain step, not the whole ascent. The route beyond remains visibly withheld so this screen can commit the chapter without spending it all at once.")
+    });
+
+    targets.push({
+      rect: screen.props.windBell,
+      label: "Inspect warning bell frame",
+      onInteract: () => showMessage("Warning Bell Frame", "The bell frame is leaner and harsher than the road shrines below. Highroad memory is still present here, but it has been stripped down into watch-duty and exposed weather.")
+    });
+
+    targets.push({
+      rect: screen.props.southView,
+      label: "Look back down-road",
+      onInteract: () => showMessage("South View", "From here the Highroad reads lower, gentler, and more human. The player should feel the altitude shift immediately: grief has not vanished, but wonder now widens through height instead of burial depth.")
+    });
+
+    targets.push({
+      rect: screen.props.southThreshold,
+      label: "Look back to North Bell Overlook",
+      onInteract: () => showMessage("South Threshold", "North Bell Overlook steadied the promise. Wind Gate is where the road actually commits. The greater climb beyond is still held, but the chapter is no longer only looking north from safety.")
     });
 
     return targets;
