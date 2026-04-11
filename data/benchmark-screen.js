@@ -881,6 +881,68 @@
     return tiles;
   }
 
+  function buildCp01Ground() {
+    const { tiles, place } = fillGrass();
+    const roadTiles = [
+      [8, 11], [9, 11], [10, 11], [11, 11],
+      [8, 10], [9, 10], [10, 10], [11, 10],
+      [8, 9], [9, 9], [10, 9], [11, 9],
+      [9, 8], [10, 8],
+      [9, 7], [10, 7],
+      [9, 6], [10, 6],
+      [9, 5], [10, 5],
+      [9, 4], [10, 4],
+      [9, 3], [10, 3],
+      [8, 2], [9, 2], [10, 2], [11, 2],
+      [8, 1], [9, 1], [10, 1], [11, 1]
+    ];
+
+    for (const [tx, ty] of roadTiles) {
+      place((tx + ty) % 2 === 0 ? "roadA" : "roadB", tx, ty);
+    }
+
+    return tiles;
+  }
+
+  function buildCp01Mid() {
+    const tiles = [];
+
+    function place(sprite, tx, ty) {
+      tiles.push({ sprite, x: tx * TILE, y: ty * TILE });
+    }
+
+    for (let tx = 0; tx <= 19; tx += 1) {
+      if (tx === 9 || tx === 10) {
+        place("stairs", tx, 7);
+      } else if (tx === 0) {
+        place("cliffLeft", tx, 7);
+      } else if (tx === 19) {
+        place("cliffRight", tx, 7);
+      } else {
+        place("cliffFace", tx, 7);
+      }
+    }
+
+    place("ruinL", 8, 3);
+    place("landmarkTopL", 9, 2);
+    place("landmarkTopR", 10, 2);
+    place("landmarkBaseL", 9, 3);
+    place("landmarkBaseR", 10, 3);
+    place("ruinR", 11, 3);
+
+    place("sign", 7, 2);
+    place("sign", 12, 2);
+    place("sign", 5, 5);
+    place("sign", 14, 5);
+
+    place("ruinL", 2, 8);
+    place("ruinR", 3, 8);
+    place("ruinL", 16, 8);
+    place("ruinR", 17, 8);
+
+    return tiles;
+  }
+
   function buildGf01Ground() {
     const { tiles, place } = fillGrass();
     const roadTiles = [
@@ -2195,6 +2257,7 @@
     size: { w: 320, h: 192 },
     spawns: {
       default: { x: 154, y: 152 },
+      north: { x: 154, y: 40 },
       south: { x: 154, y: 152 }
     },
     layers: {
@@ -2209,6 +2272,7 @@
       southThreshold: { x: 136, y: 160, w: 48, h: 16 }
     },
     transitions: [
+      { rect: rect(136, 0, 48, 8), to: "CP-01", spawn: "south" },
       { rect: rect(136, 184, 48, 8), to: "HV-07", spawn: "north" }
     ],
     enemySpawns: [
@@ -2225,13 +2289,62 @@
       }
     ],
     baseSolids: [
-      rect(0, 0, 320, 16),
-      rect(136, 16, 48, 16),
+      rect(0, 0, 136, 16),
+      rect(184, 0, 136, 16),
       rect(0, 96, 144, 16),
       rect(176, 96, 144, 16),
       rect(144, 32, 32, 28),
       rect(0, 128, 32, 32),
       rect(272, 128, 32, 32)
+    ]
+  };
+
+  const cp01 = {
+    id: "CP-01",
+    name: "Wind Gate",
+    region: "Cinderpeak Ascent",
+    size: { w: 320, h: 192 },
+    spawns: {
+      default: { x: 154, y: 152 },
+      south: { x: 154, y: 152 }
+    },
+    layers: {
+      ground: buildCp01Ground(),
+      mid: buildCp01Mid(),
+      fore: []
+    },
+    props: {
+      landmark: { x: 144, y: 32, w: 32, h: 30 },
+      northGate: { x: 136, y: 16, w: 48, h: 16 },
+      windBell: { x: 224, y: 48, w: 16, h: 16 },
+      southView: { x: 48, y: 136, w: 32, h: 16 },
+      southThreshold: { x: 136, y: 160, w: 48, h: 16 }
+    },
+    transitions: [
+      { rect: rect(136, 184, 48, 8), to: "HV-09", spawn: "north" }
+    ],
+    enemySpawns: [
+      {
+        type: "hound",
+        x: 92,
+        y: 146,
+        min: 64,
+        max: 120,
+        axis: "x",
+        dir: "left",
+        speed: 18,
+        hp: 2
+      }
+    ],
+    baseSolids: [
+      rect(0, 0, 136, 16),
+      rect(184, 0, 136, 16),
+      rect(136, 16, 48, 16),
+      rect(0, 112, 144, 16),
+      rect(176, 112, 144, 16),
+      rect(144, 32, 32, 28),
+      rect(0, 144, 32, 32),
+      rect(272, 144, 32, 32)
     ]
   };
 
@@ -2831,6 +2944,7 @@
     [hv06.id]: hv06,
     [hv07.id]: hv07,
     [hv09.id]: hv09,
+    [cp01.id]: cp01,
     [hv10.id]: hv10,
     [gf01.id]: gf01,
     [gf02.id]: gf02,
